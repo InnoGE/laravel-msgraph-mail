@@ -1,17 +1,17 @@
 {
-    "name": ":vendor_slug/:package_slug",
-    "description": ":package_description",
+    "name": "innoge/laravel-msgraph-mail",
+    "description": "This is my package laravel-msgraph-mail",
     "keywords": [
-        ":vendor_name",
+        "InnoGE",
         "laravel",
-        ":package_slug"
+        "laravel-msgraph-mail"
     ],
-    "homepage": "https://github.com/:vendor_slug/:package_slug",
+    "homepage": "https://github.com/innoge/laravel-msgraph-mail",
     "license": "MIT",
     "authors": [
         {
-            "name": ":author_name",
-            "email": "author@domain.com",
+            "name": "Tim Geisendoerfer",
+            "email": "geisi@users.noreply.github.com",
             "role": "Developer"
         }
     ],
@@ -35,13 +35,13 @@
     },
     "autoload": {
         "psr-4": {
-            "VendorName\\Skeleton\\": "src",
-            "VendorName\\Skeleton\\Database\\Factories\\": "database/factories"
+            "InnoGE\\LaravelMsGraphMail\\": "src",
+            "InnoGE\\LaravelMsGraphMail\\Database\\Factories\\": "database/factories"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "VendorName\\Skeleton\\Tests\\": "tests"
+            "InnoGE\\LaravelMsGraphMail\\Tests\\": "tests"
         }
     },
     "scripts": {
@@ -61,10 +61,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "VendorName\\Skeleton\\SkeletonServiceProvider"
+                "InnoGE\\LaravelMsGraphMail\\LaravelMsGraphMailServiceProvider"
             ],
             "aliases": {
-                "Skeleton": "VendorName\\Skeleton\\Facades\\Skeleton"
+                "LaravelMsGraphMail": "InnoGE\\LaravelMsGraphMail\\Facades\\LaravelMsGraphMail"
             }
         }
     },
