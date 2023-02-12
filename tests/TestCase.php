@@ -3,8 +3,8 @@
 namespace InnoGE\LaravelMsGraphMail\Tests;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Orchestra\Testbench\TestCase as Orchestra;
 use InnoGE\LaravelMsGraphMail\LaravelMsGraphMailServiceProvider;
+use Orchestra\Testbench\TestCase as Orchestra;
 
 class TestCase extends Orchestra
 {
