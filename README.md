@@ -23,39 +23,20 @@ You can install the package via composer:
 composer require innoge/laravel-msgraph-mail
 ```
 
-You can publish and run the migrations with:
-
-```bash
-php artisan vendor:publish --tag="laravel-msgraph-mail-migrations"
-php artisan migrate
-```
-
-You can publish the config file with:
-
-```bash
-php artisan vendor:publish --tag="laravel-msgraph-mail-config"
-```
-
-This is the contents of the published config file:
+First you need to add a new entry to the mail drivers array in your config/mail.php configuration file:
 
 ```php
-return [
-];
+'microsoft-graph' => [
+    'transport' => 'microsoft-graph',
+    'client_id' => env('MICROSOFT_GRAPH_CLIENT_ID'),
+    'client_secret' => env('MICROSOFT_GRAPH_CLIENT_SECRET'),
+    'tenant_id' => env('MICROSOFT_GRAPH_TENANT_ID'),
+    'from' => [
+        'address' => env('MAIL_FROM_ADDRESS'),
+        'name' => env('MAIL_FROM_NAME'),
+    ],
+],
 ```
-
-Optionally, you can publish the views using
-
-```bash
-php artisan vendor:publish --tag="laravel-msgraph-mail-views"
-```
-
-## Usage
-
-```php
-$laravelMsGraphMail = new InnoGE\LaravelMsGraphMail();
-echo $laravelMsGraphMail->echoPhrase('Hello, InnoGE!');
-```
-
 ## Testing
 
 ```bash

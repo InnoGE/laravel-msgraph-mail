@@ -2,5 +2,5 @@
 
 // config for InnoGE/LaravelMsGraphMail
 return [
-
+    '',
 ];
