@@ -1,9 +1,7 @@
 <?php
 
-use Illuminate\Contracts\Queue\Factory;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Mail;
 
 it('sends mails with microsoft graph', function () {
     Config::set('mail.mailers.microsoft-graph', [
