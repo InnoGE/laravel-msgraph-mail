@@ -40,7 +40,7 @@ it('sends html mails with microsoft graph', function () {
                     'subject' => 'Dev Test',
                     'body' => [
                         'contentType' => 'HTML',
-                        'content' => "<b>Test</b>\n",
+                        'content' => '<b>Test</b>'.PHP_EOL,
                     ],
                     'toRecipients' => [
                         [
@@ -122,7 +122,7 @@ it('sends text mails with microsoft graph', function () {
                     'subject' => 'Dev Test',
                     'body' => [
                         'contentType' => 'Text',
-                        'content' => "Test\n",
+                        'content' => 'Test'.PHP_EOL,
                     ],
                     'toRecipients' => [
                         [
