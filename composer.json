@@ -1,6 +1,6 @@
 {
     "name": "innoge/laravel-msgraph-mail",
-    "description": "This is my package laravel-msgraph-mail",
+    "description": "Laravel Mail driver for Microsoft Office 365 using the MSGraph API",
     "keywords": [
         "InnoGE",
         "laravel",
