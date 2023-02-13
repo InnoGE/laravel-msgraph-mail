@@ -55,18 +55,18 @@ class MicrosoftGraphTransport extends AbstractTransport
     }
 
     /**
-     * @param Collection<Address> $recipients
+     * @param  Collection<Address>  $recipients
      * @return array
      */
     protected function transformEmailAddresses(Collection $recipients): array
     {
         return $recipients
-            ->map(fn(Address $recipient) => $this->transformEmailAddress($recipient))
+            ->map(fn (Address $recipient) => $this->transformEmailAddress($recipient))
             ->toArray();
     }
 
     /**
-     * @param Address $address
+     * @param  Address  $address
      * @return array
      */
     protected function transformEmailAddress(Address $address): array
@@ -79,14 +79,14 @@ class MicrosoftGraphTransport extends AbstractTransport
     }
 
     /**
-     * @param Email $email
-     * @param Envelope $envelope
+     * @param  Email  $email
+     * @param  Envelope  $envelope
      * @return Collection<Address>
      */
     protected function getRecipients(Email $email, Envelope $envelope): Collection
     {
         return collect($envelope->getRecipients())
-            ->filter(fn(Address $address) => !in_array($address, array_merge($email->getCc(), $email->getBcc()), true));
+            ->filter(fn (Address $address) => ! in_array($address, array_merge($email->getCc(), $email->getBcc()), true));
     }
 
     protected function getAttachments(Email $email): array
