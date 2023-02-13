@@ -39,6 +39,8 @@ class LaravelMsGraphMailServiceProvider extends PackageServiceProvider
         });
 
         Mail::extend('microsoft-graph', function (array $config) {
+            throw_unless(filled($config['from']['address'] ?? []), ConfigurationMissing::fromAddress());
+
             return new MicrosoftGraphTransport(
                 app()->make(MicrosoftGraphApiService::class),
                 $config['from']['address']

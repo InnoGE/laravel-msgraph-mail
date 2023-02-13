@@ -9,7 +9,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class DevTest extends Mailable
+class TestMail extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -18,9 +18,8 @@ class DevTest extends Mailable
      *
      * @return void
      */
-    public function __construct()
+    public function __construct(private readonly bool $isHtml = true)
     {
-        //
     }
 
     /**
@@ -42,9 +41,11 @@ class DevTest extends Mailable
      */
     public function content()
     {
-        return new Content(
-            html: '<b>Test</b>',
-        );
+        if (! $this->isHtml) {
+            return new Content(text: 'text-mail');
+        }
+
+        return new Content(html: 'html-mail');
     }
 
     /**
@@ -55,8 +56,8 @@ class DevTest extends Mailable
     public function attachments(): array
     {
         return [
-            Attachment::fromPath(resource_path('pdf-test.pdf')),
-            Attachment::fromPath(resource_path('pdf-test2.pdf')),
+            Attachment::fromPath('tests/Resources/files/test-file-1.txt'),
+            Attachment::fromPath('tests/Resources/files/test-file-2.txt'),
         ];
     }
 }

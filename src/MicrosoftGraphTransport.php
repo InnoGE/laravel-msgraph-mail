@@ -23,7 +23,7 @@ class MicrosoftGraphTransport extends AbstractTransport
 
     public function __toString(): string
     {
-        return sprintf('microsoft+graph+api://%s', $this->getEndpoint());
+        return 'microsoft+graph+api://';
     }
 
     /**

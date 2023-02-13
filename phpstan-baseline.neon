@@ -1,0 +1,6 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Parameter \\#1 \\$message of static method Symfony\\\\Component\\\\Mime\\\\MessageConverter\\:\\:toEmail\\(\\) expects Symfony\\\\Component\\\\Mime\\\\Message, Symfony\\\\Component\\\\Mime\\\\RawMessage given\\.$#"
+			count: 1
+			path: src/MicrosoftGraphTransport.php
