@@ -17,7 +17,7 @@
     ],
     "require": {
         "php": "^8.1",
-        "illuminate/contracts": "^9.38",
+        "illuminate/contracts": "^9.38|^10.0",
         "spatie/laravel-package-tools": "^1.14.0",
         "symfony/mailer": "^6.0"
     },
@@ -37,8 +37,7 @@
     },
     "autoload": {
         "psr-4": {
-            "InnoGE\\LaravelMsGraphMail\\": "src",
-            "InnoGE\\LaravelMsGraphMail\\Database\\Factories\\": "database/factories"
+            "InnoGE\\LaravelMsGraphMail\\": "src"
         }
     },
     "autoload-dev": {
@@ -64,10 +63,7 @@
         "laravel": {
             "providers": [
                 "InnoGE\\LaravelMsGraphMail\\LaravelMsGraphMailServiceProvider"
-            ],
-            "aliases": {
-                "LaravelMsGraphMail": "InnoGE\\LaravelMsGraphMail\\Facades\\LaravelMsGraphMail"
-            }
+            ]
         }
     },
     "minimum-stability": "dev",
