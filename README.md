@@ -15,6 +15,8 @@ You can install the package via composer:
 ```bash
 composer require innoge/laravel-msgraph-mail
 ```
+### Compatibility
+Laravel 10.x and 9.x are supported.
 
 ## Configuration
 
