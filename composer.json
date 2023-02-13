@@ -18,10 +18,12 @@
     "require": {
         "php": "^8.1",
         "illuminate/contracts": "^9.38",
+        "illuminate/support": "^9.38",
         "spatie/laravel-package-tools": "^1.14.0",
         "symfony/mailer": "^6.0"
     },
     "require-dev": {
+        "guzzlehttp/guzzle": "^7.5",
         "laravel/pint": "^1.0",
         "nunomaduro/collision": "^6.0",
         "nunomaduro/larastan": "^2.0.1",
