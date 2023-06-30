@@ -22,6 +22,11 @@ Laravel 10.x and 9.x are supported.
 
 ### Register the Azure App
 
+### Microsoft Azure AD Configuration
+I have written a detailed Blog Post how you can configure your Microsoft Azure AD Tenant. [Sending Mails with Laravel and Microsoft Office 365 the secure way](https://geisi.dev/blog/getting-rid-of-deprecated-microsoft-office-365-smtp-mail-sending)
+
+### I want to figure it out on my own
+
 You need to register an Azure App in your Azure AD tenant. You can do this by following the steps in
 the [Microsoft Graph documentation](https://docs.microsoft.com/en-us/graph/auth-register-app-v2).
 
