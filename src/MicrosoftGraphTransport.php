@@ -48,7 +48,7 @@ class MicrosoftGraphTransport extends AbstractTransport
                 'sender' => $this->transformEmailAddress($envelope->getSender()),
                 'attachments' => $this->getAttachments($email),
             ],
-            'saveToSentItems' => false,
+            'saveToSentItems' =>  config('mail.mailers.microsoft-graph.save_to_sent_items', false),
         ];
 
         $this->microsoftGraphApiService->sendMail($this->from, $payload);
@@ -86,7 +86,7 @@ class MicrosoftGraphTransport extends AbstractTransport
     protected function getRecipients(Email $email, Envelope $envelope): Collection
     {
         return collect($envelope->getRecipients())
-            ->filter(fn (Address $address) => ! in_array($address, array_merge($email->getCc(), $email->getBcc()), true));
+            ->filter(fn (Address $address) => !in_array($address, array_merge($email->getCc(), $email->getBcc()), true));
     }
 
     protected function getAttachments(Email $email): array
