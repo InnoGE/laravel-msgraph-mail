@@ -34,19 +34,23 @@ class MicrosoftGraphTransport extends AbstractTransport
         $email = MessageConverter::toEmail($message->getOriginalMessage());
         $envelope = $message->getEnvelope();
 
+        $html = $email->getHtmlBody();
+
+        [$attachments, $html] = $this->prepareAttachments($email, $html);
+
         $payload = [
             'message' => [
                 'subject' => $email->getSubject(),
                 'body' => [
-                    'contentType' => $email->getHtmlBody() === null ? 'Text' : 'HTML',
-                    'content' => $email->getHtmlBody() ?: $email->getTextBody(),
+                    'contentType' => $html === null ? 'Text' : 'HTML',
+                    'content' => $html ?: $email->getTextBody(),
                 ],
                 'toRecipients' => $this->transformEmailAddresses($this->getRecipients($email, $envelope)),
                 'ccRecipients' => $this->transformEmailAddresses(collect($email->getCc())),
                 'bccRecipients' => $this->transformEmailAddresses(collect($email->getBcc())),
                 'replyTo' => $this->transformEmailAddresses(collect($email->getReplyTo())),
                 'sender' => $this->transformEmailAddress($envelope->getSender()),
-                'attachments' => $this->getAttachments($email),
+                'attachments' => $attachments,
             ],
             'saveToSentItems' =>  config('mail.mailers.microsoft-graph.save_to_sent_items', false),
         ];
@@ -89,19 +93,28 @@ class MicrosoftGraphTransport extends AbstractTransport
             ->filter(fn (Address $address) => !in_array($address, array_merge($email->getCc(), $email->getBcc()), true));
     }
 
-    protected function getAttachments(Email $email): array
+    /**
+     * @param Email $email
+     * @param string|null $html
+     * @return array
+     */
+    protected function prepareAttachments(Email $email, ?string $html): array
     {
         $attachments = [];
         foreach ($email->getAttachments() as $attachment) {
-            $fileName = $attachment->getPreparedHeaders()->getHeaderParameter('Content-Disposition', 'filename');
+            $headers = $attachment->getPreparedHeaders();
+            $fileName = $headers->getHeaderParameter('Content-Disposition', 'filename');
+
             $attachments[] = [
                 '@odata.type' => '#microsoft.graph.fileAttachment',
                 'name' => $fileName,
                 'contentType' => $attachment->getMediaType(),
                 'contentBytes' => base64_encode($attachment->getBody()),
+                'contentId' => $fileName,
+                'isInline' => $headers->getHeaderBody('Content-Disposition') === 'inline',
             ];
         }
 
-        return $attachments;
+        return [$attachments, $html];
     }
 }
