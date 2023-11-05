@@ -4,3 +4,8 @@ parameters:
 			message: "#^Parameter \\#1 \\$message of static method Symfony\\\\Component\\\\Mime\\\\MessageConverter\\:\\:toEmail\\(\\) expects Symfony\\\\Component\\\\Mime\\\\Message, Symfony\\\\Component\\\\Mime\\\\RawMessage given\\.$#"
 			count: 1
 			path: src/MicrosoftGraphTransport.php
+
+		-
+			message: "#^Parameter \\#2 \\$html of method InnoGE\\\\LaravelMsGraphMail\\\\MicrosoftGraphTransport\\:\\:prepareAttachments\\(\\) expects string\\|null, resource\\|string\\|null given\\.$#"
+			count: 1
+			path: src/MicrosoftGraphTransport.php

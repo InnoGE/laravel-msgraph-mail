@@ -18,8 +18,7 @@ class LaravelMsGraphMailServiceProvider extends PackageServiceProvider
          * More info: https://github.com/spatie/laravel-package-tools
          */
         $package
-            ->name('laravel-msgraph-mail')
-            ->hasConfigFile();
+            ->name('laravel-msgraph-mail');
     }
 
     public function boot(): void
