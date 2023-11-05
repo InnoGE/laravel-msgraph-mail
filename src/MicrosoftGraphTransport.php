@@ -34,7 +34,7 @@ class MicrosoftGraphTransport extends AbstractTransport
         $email = MessageConverter::toEmail($message->getOriginalMessage());
         $envelope = $message->getEnvelope();
 
-        $html = (string) $email->getHtmlBody();
+        $html = $email->getHtmlBody();
 
         [$attachments, $html] = $this->prepareAttachments($email, $html);
 
