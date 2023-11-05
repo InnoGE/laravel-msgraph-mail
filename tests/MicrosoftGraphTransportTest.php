@@ -20,6 +20,7 @@ it('sends html mails with microsoft graph', function () {
             'address' => 'taylor@laravel.com',
             'name' => 'Taylor Otwell',
         ],
+        'save_to_sent_items' => null,
     ]);
     Config::set('mail.default', 'microsoft-graph');
 
@@ -318,7 +319,7 @@ it('sends html mails with inline images with microsoft graph', function () {
                     'subject' => 'Dev Test',
                     'body' => [
                         'contentType' => 'HTML',
-                        'content' => '<b>Test</b><img src="cid:' . $inlineImageContentId . '">'.PHP_EOL,
+                        'content' => '<b>Test</b><img src="cid:'.$inlineImageContentId.'">'.PHP_EOL,
                     ],
                     'toRecipients' => [
                         [
