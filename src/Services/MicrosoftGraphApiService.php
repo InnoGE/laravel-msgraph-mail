@@ -11,9 +11,9 @@ use Illuminate\Support\Facades\Http;
 class MicrosoftGraphApiService
 {
     public function __construct(protected readonly string $tenantId,
-                                protected readonly string $clientId,
-                                protected readonly string $clientSecret,
-                                protected readonly int $accessTokenTtl
+        protected readonly string $clientId,
+        protected readonly string $clientSecret,
+        protected readonly int $accessTokenTtl
     ) {
     }
 
