@@ -55,7 +55,7 @@ class MicrosoftGraphTransport extends AbstractTransport
                 'sender' => $this->transformEmailAddress($envelope->getSender()),
                 'attachments' => $attachments,
             ],
-            'saveToSentItems' => config('mail.mailers.microsoft-graph.save_to_sent_items', false),
+            'saveToSentItems' => config('mail.mailers.microsoft-graph.save_to_sent_items', false) ?? false,
         ];
 
         $this->microsoftGraphApiService->sendMail($envelope->getSender()->getAddress(), $payload);
