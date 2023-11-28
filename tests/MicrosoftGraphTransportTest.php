@@ -373,3 +373,92 @@ it('sends html mails with inline images with microsoft graph', function () {
         return true;
     });
 });
+
+test('the configured mail sender can be overwritten', function () {
+    Config::set('mail.mailers.microsoft-graph', [
+        'transport' => 'microsoft-graph',
+        'client_id' => 'foo_client_id',
+        'client_secret' => 'foo_client_secret',
+        'tenant_id' => 'foo_tenant_id',
+        'from' => [
+            'address' => 'taylor@laravel.com',
+            'name' => 'Taylor Otwell',
+        ],
+    ]);
+    Config::set('mail.default', 'microsoft-graph');
+
+    Cache::set('microsoft-graph-api-access-token', 'foo_access_token', 3600);
+
+    Http::fake();
+
+    $mailable = new TestMail(false);
+    $mailable->from('other-mail@laravel.com', 'Other Mail');
+
+    Mail::to('caleb@livewire.com')
+        ->bcc('tim@innoge.de')
+        ->cc('nuno@laravel.com')
+        ->send($mailable);
+
+    Http::assertSent(function (Request $value) {
+        expect($value)
+            ->url()->toBe('https://graph.microsoft.com/v1.0/users/other-mail@laravel.com/sendMail')
+            ->hasHeader('Authorization', 'Bearer foo_access_token')->toBeTrue()
+            ->body()->json()->toBe([
+                'message' => [
+                    'subject' => 'Dev Test',
+                    'body' => [
+                        'contentType' => 'Text',
+                        'content' => 'Test'.PHP_EOL,
+                    ],
+                    'toRecipients' => [
+                        [
+                            'emailAddress' => [
+                                'address' => 'caleb@livewire.com',
+                            ],
+                        ],
+                    ],
+                    'ccRecipients' => [
+                        [
+                            'emailAddress' => [
+                                'address' => 'nuno@laravel.com',
+                            ],
+                        ],
+                    ],
+                    'bccRecipients' => [
+                        [
+                            'emailAddress' => [
+                                'address' => 'tim@innoge.de',
+                            ],
+                        ],
+                    ],
+                    'replyTo' => [],
+                    'sender' => [
+                        'emailAddress' => [
+                            'address' => 'other-mail@laravel.com',
+                        ],
+                    ],
+                    'attachments' => [
+                        [
+                            '@odata.type' => '#microsoft.graph.fileAttachment',
+                            'name' => 'test-file-1.txt',
+                            'contentType' => 'text',
+                            'contentBytes' => 'Zm9vCg==',
+                            'contentId' => 'test-file-1.txt',
+                            'isInline' => false,
+                        ],
+                        [
+                            '@odata.type' => '#microsoft.graph.fileAttachment',
+                            'name' => 'test-file-2.txt',
+                            'contentType' => 'text',
+                            'contentBytes' => 'Zm9vCg==',
+                            'contentId' => 'test-file-2.txt',
+                            'isInline' => false,
+                        ],
+                    ],
+                ],
+                'saveToSentItems' => false,
+            ]);
+
+        return true;
+    });
+});
