@@ -400,7 +400,7 @@ test('the configured mail sender can be overwritten', function () {
 
     Http::assertSent(function (Request $value) {
         expect($value)
-            ->url()->toBe('https://graph.microsoft.com/v1.0/users/taylor@laravel.com/sendMail')
+            ->url()->toBe('https://graph.microsoft.com/v1.0/users/other-mail@laravel.com/sendMail')
             ->hasHeader('Authorization', 'Bearer foo_access_token')->toBeTrue()
             ->body()->json()->toBe([
                 'message' => [
