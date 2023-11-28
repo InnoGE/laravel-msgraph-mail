@@ -20,6 +20,7 @@ it('sends html mails with microsoft graph', function () {
             'address' => 'taylor@laravel.com',
             'name' => 'Taylor Otwell',
         ],
+        'save_to_sent_items' => null,
     ]);
     Config::set('mail.default', 'microsoft-graph');
 
