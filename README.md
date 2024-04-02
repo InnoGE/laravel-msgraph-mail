@@ -16,10 +16,6 @@ You can install the package via composer:
 composer require innoge/laravel-msgraph-mail
 ```
 
-### Compatibility
-
-Laravel 10.x and 9.x are supported.
-
 ## Configuration
 
 ### Register the Azure App
