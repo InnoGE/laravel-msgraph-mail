@@ -239,7 +239,7 @@ it('throws exceptions on invalid access token in response', function () {
     ]);
 
     expect(fn () => Mail::to('caleb@livewire.com')->send(new TestMail(false)))
-        ->toThrow(new InvalidResponse('Expected response to contain key access_token of type string, got: 123.'));
+        ->toThrow(InvalidResponse::class, 'Expected response to contain key access_token of type string, got: 123.');
 });
 
 it('throws exceptions when config is invalid', function (array $config, Exception $exception) {
@@ -247,7 +247,7 @@ it('throws exceptions when config is invalid', function (array $config, Exceptio
     Config::set('mail.default', 'microsoft-graph');
 
     expect(fn () => Mail::to('caleb@livewire.com')->send(new TestMail(false)))
-        ->toThrow($exception);
+        ->toThrow(get_class($exception), $exception->getMessage());
 })->with([
     [
         [
