@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use InnoGE\LaravelMsGraphMail\Exceptions\ConfigurationMissing;
+use InnoGE\LaravelMsGraphMail\Exceptions\InvalidResponse;
 use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMail;
 use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMailWithInlineImage;
 
@@ -217,6 +218,33 @@ it('creates an oauth access token', function () {
 
     expect(Cache::get('microsoft-graph-api-access-token'))
         ->toBe('foo_access_token');
+});
+
+it('throws exceptions on invalid access token in response', function () {
+    Config::set('mail.mailers.microsoft-graph', [
+        'transport' => 'microsoft-graph',
+        'client_id' => 'foo_client_id',
+        'client_secret' => 'foo_client_secret',
+        'tenant_id' => 'foo_tenant_id',
+        'from' => [
+            'address' => 'taylor@laravel.com',
+            'name' => 'Taylor Otwell',
+        ],
+    ]);
+    Config::set('mail.default', 'microsoft-graph');
+
+    Http::fake([
+        'https://login.microsoftonline.com/foo_tenant_id/oauth2/v2.0/token' => Http::response(['access_token' => 123]),
+    ]);
+
+    try {
+        Mail::to('caleb@livewire.com')
+            ->send(new TestMail(false));
+    } catch (Exception $e) {
+        expect($e)
+            ->toBeInstanceOf(InvalidResponse::class)
+            ->getMessage()->toBe('Expected response to contain key access_token of type string, got: 123.');
+    }
 });
 
 it('throws exceptions when config is missing', function (array $config, string $exceptionMessage) {

@@ -82,7 +82,7 @@ class MicrosoftGraphTransport extends AbstractTransport
     }
 
     /**
-     * @param  Collection<Address>  $recipients
+     * @param  Collection<array-key, Address>  $recipients
      */
     protected function transformEmailAddresses(Collection $recipients): array
     {
@@ -101,7 +101,7 @@ class MicrosoftGraphTransport extends AbstractTransport
     }
 
     /**
-     * @return Collection<Address>
+     * @return Collection<array-key, Address>
      */
     protected function getRecipients(Email $email, Envelope $envelope): Collection
     {
