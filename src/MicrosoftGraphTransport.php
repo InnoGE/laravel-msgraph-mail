@@ -18,9 +18,9 @@ class MicrosoftGraphTransport extends AbstractTransport
 {
     public function __construct(
         protected MicrosoftGraphApiService $microsoftGraphApiService,
-        EventDispatcherInterface $dispatcher = null,
-        LoggerInterface $logger = null)
-    {
+        ?EventDispatcherInterface $dispatcher = null,
+        ?LoggerInterface $logger = null
+    ) {
         parent::__construct($dispatcher, $logger);
     }
 
