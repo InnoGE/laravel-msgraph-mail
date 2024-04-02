@@ -41,7 +41,7 @@ class LaravelMsGraphMailServiceProvider extends PackageServiceProvider
             throw_unless(filled($config['from']['address'] ?? []), ConfigurationMissing::fromAddress());
 
             return new MicrosoftGraphTransport(
-                app()->make(MicrosoftGraphApiService::class)
+                $this->app->make(MicrosoftGraphApiService::class)
             );
         });
     }
