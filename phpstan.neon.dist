@@ -2,7 +2,7 @@ includes:
     - phpstan-baseline.neon
 
 parameters:
-    level: 8
+    level: max
     paths:
         - src
     tmpDir: build/phpstan
@@ -10,4 +10,3 @@ parameters:
     checkModelProperties: true
     checkMissingIterableValueType: false
     checkGenericClassInNonGenericObjectType: false
-

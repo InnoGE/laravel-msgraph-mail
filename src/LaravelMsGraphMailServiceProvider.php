@@ -3,6 +3,7 @@
 namespace InnoGE\LaravelMsGraphMail;
 
 use Illuminate\Support\Facades\Mail;
+use InnoGE\LaravelMsGraphMail\Exceptions\ConfigurationInvalid;
 use InnoGE\LaravelMsGraphMail\Exceptions\ConfigurationMissing;
 use InnoGE\LaravelMsGraphMail\Services\MicrosoftGraphApiService;
 use Spatie\LaravelPackageTools\Package;
@@ -23,26 +24,40 @@ class LaravelMsGraphMailServiceProvider extends PackageServiceProvider
 
     public function boot(): void
     {
-        $this->app->bind(MicrosoftGraphApiService::class, function () {
-            //throw exceptions when config is missing
-            throw_unless(filled(config('mail.mailers.microsoft-graph.tenant_id')), ConfigurationMissing::tenantId());
-            throw_unless(filled(config('mail.mailers.microsoft-graph.client_id')), ConfigurationMissing::clientId());
-            throw_unless(filled(config('mail.mailers.microsoft-graph.client_secret')), ConfigurationMissing::clientSecret());
+        Mail::extend('microsoft-graph', function (array $config): MicrosoftGraphTransport {
+            throw_if(blank($config['from']['address'] ?? []), new ConfigurationMissing('from.address'));
 
-            return new MicrosoftGraphApiService(
-                tenantId: config('mail.mailers.microsoft-graph.tenant_id', ''),
-                clientId: config('mail.mailers.microsoft-graph.client_id', ''),
-                clientSecret: config('mail.mailers.microsoft-graph.client_secret', ''),
-                accessTokenTtl: config('mail.mailers.microsoft-graph.access_token_ttl', 3000),
-            );
-        });
-
-        Mail::extend('microsoft-graph', function (array $config) {
-            throw_unless(filled($config['from']['address'] ?? []), ConfigurationMissing::fromAddress());
+            $accessTokenTtl = $config['access_token_ttl'] ?? 3000;
+            if (! is_int($accessTokenTtl)) {
+                throw new ConfigurationInvalid('access_token_ttl', $accessTokenTtl);
+            }
 
             return new MicrosoftGraphTransport(
-                $this->app->make(MicrosoftGraphApiService::class)
+                new MicrosoftGraphApiService(
+                    tenantId: $this->requireConfigString($config, 'tenant_id'),
+                    clientId: $this->requireConfigString($config, 'client_id'),
+                    clientSecret: $this->requireConfigString($config, 'client_secret'),
+                    accessTokenTtl: $accessTokenTtl,
+                ),
             );
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     * @return non-empty-string
+     */
+    protected function requireConfigString(array $config, string $key): string
+    {
+        if (! array_key_exists($key, $config)) {
+            throw new ConfigurationMissing($key);
+        }
+
+        $value = $config[$key];
+        if (! is_string($value) || $value === '') {
+            throw new ConfigurationInvalid($key, $value);
+        }
+
+        return $value;
     }
 }

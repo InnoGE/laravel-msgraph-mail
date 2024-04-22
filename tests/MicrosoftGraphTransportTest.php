@@ -6,7 +6,9 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use InnoGE\LaravelMsGraphMail\Exceptions\ConfigurationInvalid;
 use InnoGE\LaravelMsGraphMail\Exceptions\ConfigurationMissing;
+use InnoGE\LaravelMsGraphMail\Exceptions\InvalidResponse;
 use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMail;
 use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMailWithInlineImage;
 
@@ -219,69 +221,133 @@ it('creates an oauth access token', function () {
         ->toBe('foo_access_token');
 });
 
-it('throws exceptions when config is missing', function (array $config, string $exceptionMessage) {
+it('throws exceptions on invalid access token in response', function () {
+    Config::set('mail.mailers.microsoft-graph', [
+        'transport' => 'microsoft-graph',
+        'client_id' => 'foo_client_id',
+        'client_secret' => 'foo_client_secret',
+        'tenant_id' => 'foo_tenant_id',
+        'from' => [
+            'address' => 'taylor@laravel.com',
+            'name' => 'Taylor Otwell',
+        ],
+    ]);
+    Config::set('mail.default', 'microsoft-graph');
+
+    Http::fake([
+        'https://login.microsoftonline.com/foo_tenant_id/oauth2/v2.0/token' => Http::response(['access_token' => 123]),
+    ]);
+
+    expect(fn () => Mail::to('caleb@livewire.com')->send(new TestMail(false)))
+        ->toThrow(InvalidResponse::class, 'Expected response to contain key access_token of type string, got: 123.');
+});
+
+it('throws exceptions when config is invalid', function (array $config, Exception $exception) {
     Config::set('mail.mailers.microsoft-graph', $config);
     Config::set('mail.default', 'microsoft-graph');
 
-    try {
-        Mail::to('caleb@livewire.com')
-            ->send(new TestMail(false));
-    } catch (Exception $e) {
-        expect($e)
-            ->toBeInstanceOf(ConfigurationMissing::class)
-            ->getMessage()->toBe($exceptionMessage);
-    }
-})->with(
+    expect(fn () => Mail::to('caleb@livewire.com')->send(new TestMail(false)))
+        ->toThrow(get_class($exception), $exception->getMessage());
+})->with([
     [
         [
-            [
-                'transport' => 'microsoft-graph',
-                'client_id' => 'foo_client_id',
-                'client_secret' => 'foo_client_secret',
-                'tenant_id' => '',
-                'from' => [
-                    'address' => 'taylor@laravel.com',
-                    'name' => 'Taylor Otwell',
-                ],
+            'transport' => 'microsoft-graph',
+            'client_id' => 'foo_client_id',
+            'client_secret' => 'foo_client_secret',
+            'from' => [
+                'address' => 'taylor@laravel.com',
+                'name' => 'Taylor Otwell',
             ],
-            'The tenant id is missing from the configuration file.',
         ],
+        new ConfigurationMissing('tenant_id'),
+    ],
+    [
         [
-            [
-                'transport' => 'microsoft-graph',
-                'client_id' => '',
-                'client_secret' => 'foo_client_secret',
-                'tenant_id' => 'foo_tenant_id',
-                'from' => [
-                    'address' => 'taylor@laravel.com',
-                    'name' => 'Taylor Otwell',
-                ],
+            'transport' => 'microsoft-graph',
+            'tenant_id' => 123,
+            'client_id' => 'foo_client_id',
+            'client_secret' => 'foo_client_secret',
+            'from' => [
+                'address' => 'taylor@laravel.com',
+                'name' => 'Taylor Otwell',
             ],
-            'The client id is missing from the configuration file.',
         ],
+        new ConfigurationInvalid('tenant_id', 123),
+    ],
+    [
         [
-            [
-                'transport' => 'microsoft-graph',
-                'client_id' => 'foo_client_id',
-                'client_secret' => '',
-                'tenant_id' => 'foo_tenant_id',
-                'from' => [
-                    'address' => 'taylor@laravel.com',
-                    'name' => 'Taylor Otwell',
-                ],
+            'transport' => 'microsoft-graph',
+            'tenant_id' => 'foo_tenant_id',
+            'client_secret' => 'foo_client_secret',
+            'from' => [
+                'address' => 'taylor@laravel.com',
+                'name' => 'Taylor Otwell',
             ],
-            'The client secret is missing from the configuration file.',
         ],
+        new ConfigurationMissing('client_id'),
+    ],
+    [
         [
-            [
-                'transport' => 'microsoft-graph',
-                'client_id' => 'foo_client_id',
-                'client_secret' => 'foo_client_secret',
-                'tenant_id' => 'foo_tenant_id',
+            'transport' => 'microsoft-graph',
+            'tenant_id' => 'foo_tenant_id',
+            'client_id' => '',
+            'client_secret' => 'foo_client_secret',
+            'from' => [
+                'address' => 'taylor@laravel.com',
+                'name' => 'Taylor Otwell',
             ],
-            'The mail from address is missing from the configuration file.',
         ],
-    ]);
+        new ConfigurationInvalid('client_id', ''),
+    ],
+    [
+        [
+            'transport' => 'microsoft-graph',
+            'tenant_id' => 'foo_tenant_id',
+            'client_id' => 'foo_client_id',
+            'from' => [
+                'address' => 'taylor@laravel.com',
+                'name' => 'Taylor Otwell',
+            ],
+        ],
+        new ConfigurationMissing('client_secret'),
+    ],
+    [
+        [
+            'transport' => 'microsoft-graph',
+            'tenant_id' => 'foo_tenant_id',
+            'client_id' => 'foo_client_id',
+            'client_secret' => null,
+            'from' => [
+                'address' => 'taylor@laravel.com',
+                'name' => 'Taylor Otwell',
+            ],
+        ],
+        new ConfigurationInvalid('client_secret', null),
+    ],
+    [
+        [
+            'transport' => 'microsoft-graph',
+            'tenant_id' => 'foo_tenant_id',
+            'client_id' => 'foo_client_id',
+            'client_secret' => 'foo_client_secret',
+        ],
+        new ConfigurationMissing('from.address'),
+    ],
+    [
+        [
+            'transport' => 'microsoft-graph',
+            'tenant_id' => 'foo_tenant_id',
+            'client_id' => 'foo_client_id',
+            'client_secret' => 'foo_client_secret',
+            'access_token_ttl' => false,
+            'from' => [
+                'address' => 'taylor@laravel.com',
+                'name' => 'Taylor Otwell',
+            ],
+        ],
+        new ConfigurationInvalid('access_token_ttl', false),
+    ],
+]);
 
 it('sends html mails with inline images with microsoft graph', function () {
     Config::set('mail.mailers.microsoft-graph', [

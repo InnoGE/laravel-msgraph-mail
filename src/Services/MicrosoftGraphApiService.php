@@ -7,6 +7,7 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use InnoGE\LaravelMsGraphMail\Exceptions\InvalidResponse;
 
 class MicrosoftGraphApiService
 {
@@ -48,7 +49,13 @@ class MicrosoftGraphApiService
 
             $response->throw();
 
-            return $response->json('access_token');
+            $accessToken = $response->json('access_token');
+            if (! is_string($accessToken)) {
+                $notString = var_export($accessToken, true);
+                throw new InvalidResponse("Expected response to contain key access_token of type string, got: {$notString}.");
+            }
+
+            return $accessToken;
         });
     }
 }
