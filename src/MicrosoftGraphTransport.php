@@ -93,7 +93,6 @@ class MicrosoftGraphTransport extends AbstractTransport
      */
     protected function transformEmailAddresses(Collection $recipients): array
     {
-        info(json_encode($recipients));
         return $recipients
             ->map(fn (Address $recipient) => $this->transformEmailAddress($recipient))
             ->toArray();
