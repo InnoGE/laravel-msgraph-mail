@@ -6,6 +6,7 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use InnoGE\LaravelMsGraphMail\Services\MicrosoftGraphApiService;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use InnoGE\LaravelMsGraphMail\Exceptions\ConfigurationMissing;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mailer\SentMessage;
@@ -58,6 +59,12 @@ class MicrosoftGraphTransport extends AbstractTransport
             'saveToSentItems' => config('mail.mailers.microsoft-graph.save_to_sent_items', false) ?? false,
         ];
 
+        if(config('mail.mailers.microsoft-graph.send_from_alias', false)) {
+            $fromAlias = env('MAIL_FROM_ALIAS');
+            throw_if(empty($fromAlias), new ConfigurationMissing('from.address'));
+            $payload['from']=$this->transformEmailAddress(new Address($fromAlias));
+        }
+
         $this->microsoftGraphApiService->sendMail($envelope->getSender()->getAddress(), $payload);
     }
 
@@ -86,6 +93,7 @@ class MicrosoftGraphTransport extends AbstractTransport
      */
     protected function transformEmailAddresses(Collection $recipients): array
     {
+        info(json_encode($recipients));
         return $recipients
             ->map(fn (Address $recipient) => $this->transformEmailAddress($recipient))
             ->toArray();
