@@ -96,6 +96,7 @@ class MicrosoftGraphTransport extends AbstractTransport
         return [
             'emailAddress' => [
                 'address' => $address->getAddress(),
+                'name' => $address->getName(),
             ],
         ];
     }
