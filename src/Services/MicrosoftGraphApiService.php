@@ -45,7 +45,7 @@ class MicrosoftGraphApiService
             $response->throw();
 
             $accessToken = $response->json('access_token');
-            throw_unless(is_string($accessToken), new InvalidResponse('Expected response to contain key access_token of type string, got: {'.var_export($accessToken, true).' }.'));
+            throw_unless(is_string($accessToken), new InvalidResponse('Expected response to contain key access_token of type string, got: '.var_export($accessToken, true).'.'));
 
             return $accessToken;
         });
