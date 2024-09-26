@@ -18,9 +18,7 @@ class TestMail extends Mailable
      *
      * @return void
      */
-    public function __construct(private readonly bool $isHtml = true)
-    {
-    }
+    public function __construct(private readonly bool $isHtml = true) {}
 
     /**
      * Get the message envelope.

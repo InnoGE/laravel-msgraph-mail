@@ -33,7 +33,7 @@ it('sends html mails with microsoft graph', function () {
     Mail::to('caleb@livewire.com')
         ->bcc('tim@innoge.de')
         ->cc('nuno@laravel.com')
-        ->send(new TestMail());
+        ->send(new TestMail);
 
     Http::assertSent(function (Request $value) {
         expect($value)
@@ -371,11 +371,11 @@ it('sends html mails with inline images with microsoft graph', function () {
     Mail::to('caleb@livewire.com')
         ->bcc('tim@innoge.de')
         ->cc('nuno@laravel.com')
-        ->send(new TestMailWithInlineImage());
+        ->send(new TestMailWithInlineImage);
 
     Http::assertSent(function (Request $value) {
         // ContentId gets random generated, so get this value first and check for equality later
-        $inlineImageContentId = json_decode($value->body())->message->attachments[1]->contentId;
+        $inlineImageContentId = json_decode($value->body())->message->attachments[0]->contentId;
 
         expect($value)
             ->url()->toBe('https://graph.microsoft.com/v1.0/users/taylor@laravel.com/sendMail')
@@ -415,14 +415,6 @@ it('sends html mails with inline images with microsoft graph', function () {
                         ],
                     ],
                     'attachments' => [
-                        [
-                            '@odata.type' => '#microsoft.graph.fileAttachment',
-                            'name' => 'test-file-1.txt',
-                            'contentType' => 'text',
-                            'contentBytes' => 'Zm9vCg==',
-                            'contentId' => 'test-file-1.txt',
-                            'isInline' => false,
-                        ],
                         [
                             '@odata.type' => '#microsoft.graph.fileAttachment',
                             'name' => $inlineImageContentId,

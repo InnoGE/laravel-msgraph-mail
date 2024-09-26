@@ -61,6 +61,9 @@ class MicrosoftGraphTransport extends AbstractTransport
         $this->microsoftGraphApiService->sendMail($envelope->getSender()->getAddress(), $payload);
     }
 
+    /**
+     * @return array<int, array<int<0, max>, array<string, bool|string|null>>|string|null>
+     */
     protected function prepareAttachments(Email $email, ?string $html): array
     {
         $attachments = [];
@@ -83,6 +86,7 @@ class MicrosoftGraphTransport extends AbstractTransport
 
     /**
      * @param  Collection<array-key, Address>  $recipients
+     * @return array<array-key, array<string, array<string, string>>>
      */
     protected function transformEmailAddresses(Collection $recipients): array
     {

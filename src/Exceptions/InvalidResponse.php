@@ -4,6 +4,4 @@ namespace InnoGE\LaravelMsGraphMail\Exceptions;
 
 use Exception;
 
-class InvalidResponse extends Exception
-{
-}
+class InvalidResponse extends Exception {}

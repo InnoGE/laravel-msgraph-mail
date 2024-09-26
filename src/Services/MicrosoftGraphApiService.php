@@ -3,7 +3,6 @@
 namespace InnoGE\LaravelMsGraphMail\Services;
 
 use Illuminate\Http\Client\PendingRequest;
-use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -16,12 +15,8 @@ class MicrosoftGraphApiService
         protected readonly string $clientId,
         protected readonly string $clientSecret,
         protected readonly int $accessTokenTtl
-    ) {
-    }
+    ) {}
 
-    /**
-     * @throws RequestException
-     */
     public function sendMail(string $from, array $payload): Response
     {
         return $this->getBaseRequest()
@@ -50,10 +45,7 @@ class MicrosoftGraphApiService
             $response->throw();
 
             $accessToken = $response->json('access_token');
-            if (! is_string($accessToken)) {
-                $notString = var_export($accessToken, true);
-                throw new InvalidResponse("Expected response to contain key access_token of type string, got: {$notString}.");
-            }
+            throw_unless(is_string($accessToken), new InvalidResponse('Expected response to contain key access_token of type string, got: '.var_export($accessToken, true).'.'));
 
             return $accessToken;
         });
