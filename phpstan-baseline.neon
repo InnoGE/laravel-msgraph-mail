@@ -1,6 +1,16 @@
 parameters:
 	ignoreErrors:
 		-
+			message: "#^Method InnoGE\\\\LaravelMsGraphMail\\\\MicrosoftGraphTransport\\:\\:transformEmailAddress\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/MicrosoftGraphTransport.php
+
+		-
+			message: "#^Method InnoGE\\\\LaravelMsGraphMail\\\\MicrosoftGraphTransport\\:\\:transformEmailAddresses\\(\\) should return array\\<array\\<string, array\\<string, string\\>\\>\\> but returns array\\.$#"
+			count: 1
+			path: src/MicrosoftGraphTransport.php
+
+		-
 			message: "#^Parameter \\#1 \\$message of static method Symfony\\\\Component\\\\Mime\\\\MessageConverter\\:\\:toEmail\\(\\) expects Symfony\\\\Component\\\\Mime\\\\Message, Symfony\\\\Component\\\\Mime\\\\RawMessage given\\.$#"
 			count: 1
 			path: src/MicrosoftGraphTransport.php
@@ -9,3 +19,13 @@ parameters:
 			message: "#^Parameter \\#2 \\$html of method InnoGE\\\\LaravelMsGraphMail\\\\MicrosoftGraphTransport\\:\\:prepareAttachments\\(\\) expects string\\|null, resource\\|string\\|null given\\.$#"
 			count: 1
 			path: src/MicrosoftGraphTransport.php
+
+		-
+			message: "#^Method InnoGE\\\\LaravelMsGraphMail\\\\Services\\\\MicrosoftGraphApiService\\:\\:getAccessToken\\(\\) should return string but returns mixed\\.$#"
+			count: 1
+			path: src/Services/MicrosoftGraphApiService.php
+
+		-
+			message: "#^Method InnoGE\\\\LaravelMsGraphMail\\\\Services\\\\MicrosoftGraphApiService\\:\\:sendMail\\(\\) has parameter \\$payload with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/MicrosoftGraphApiService.php
