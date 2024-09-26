@@ -16,8 +16,7 @@ class MicrosoftGraphApiService
         protected readonly string $clientId,
         protected readonly string $clientSecret,
         protected readonly int $accessTokenTtl
-    ) {
-    }
+    ) {}
 
     /**
      * @throws RequestException
