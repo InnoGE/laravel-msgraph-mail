@@ -239,7 +239,7 @@ it('throws exceptions when config is invalid', function (array $config, Exceptio
     Config::set('mail.default', 'microsoft-graph');
 
     expect(fn () => Mail::to('caleb@livewire.com')->send(new TestMail(false)))
-        ->toThrow($exception);
+        ->toThrow(get_class($exception), $exception->getMessage());
 })->with([
     [
         [
