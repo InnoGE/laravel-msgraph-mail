@@ -45,10 +45,6 @@ First you need to add a new entry to the mail drivers array in your `config/mail
     'client_id' => env('MICROSOFT_GRAPH_CLIENT_ID'),
     'client_secret' => env('MICROSOFT_GRAPH_CLIENT_SECRET'),
     'tenant_id' => env('MICROSOFT_GRAPH_TENANT_ID'),
-    'from' => [
-        'address' => env('MAIL_FROM_ADDRESS'),
-        'name' => env('MAIL_FROM_NAME'),
-    ],
     'save_to_sent_items' =>  env('MAIL_SAVE_TO_SENT_ITEMS', false),
 ],
 ```

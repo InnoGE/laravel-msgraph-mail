@@ -18,13 +18,13 @@ it('sends html mails with microsoft graph', function () {
         'client_id' => 'foo_client_id',
         'client_secret' => 'foo_client_secret',
         'tenant_id' => 'foo_tenant_id',
-        'from' => [
-            'address' => 'taylor@laravel.com',
-            'name' => 'Taylor Otwell',
-        ],
         'save_to_sent_items' => null,
     ]);
     Config::set('mail.default', 'microsoft-graph');
+    Config::set('mail.from', [
+        'address' => 'taylor@laravel.com',
+        'name' => 'Taylor Otwell',
+    ]);
 
     Cache::set('microsoft-graph-api-access-token', 'foo_access_token', 3600);
 
@@ -105,12 +105,12 @@ it('sends text mails with microsoft graph', function () {
         'client_id' => 'foo_client_id',
         'client_secret' => 'foo_client_secret',
         'tenant_id' => 'foo_tenant_id',
-        'from' => [
-            'address' => 'taylor@laravel.com',
-            'name' => 'Taylor Otwell',
-        ],
     ]);
     Config::set('mail.default', 'microsoft-graph');
+    Config::set('mail.from', [
+        'address' => 'taylor@laravel.com',
+        'name' => 'Taylor Otwell',
+    ]);
 
     Cache::set('microsoft-graph-api-access-token', 'foo_access_token', 3600);
 
@@ -191,10 +191,6 @@ it('creates an oauth access token', function () {
         'client_id' => 'foo_client_id',
         'client_secret' => 'foo_client_secret',
         'tenant_id' => 'foo_tenant_id',
-        'from' => [
-            'address' => 'taylor@laravel.com',
-            'name' => 'Taylor Otwell',
-        ],
     ]);
     Config::set('mail.default', 'microsoft-graph');
 
@@ -227,10 +223,6 @@ it('throws exceptions on invalid access token in response', function () {
         'client_id' => 'foo_client_id',
         'client_secret' => 'foo_client_secret',
         'tenant_id' => 'foo_tenant_id',
-        'from' => [
-            'address' => 'taylor@laravel.com',
-            'name' => 'Taylor Otwell',
-        ],
     ]);
     Config::set('mail.default', 'microsoft-graph');
 
@@ -247,17 +239,13 @@ it('throws exceptions when config is invalid', function (array $config, Exceptio
     Config::set('mail.default', 'microsoft-graph');
 
     expect(fn () => Mail::to('caleb@livewire.com')->send(new TestMail(false)))
-        ->toThrow(get_class($exception), $exception->getMessage());
+        ->toThrow($exception);
 })->with([
     [
         [
             'transport' => 'microsoft-graph',
             'client_id' => 'foo_client_id',
             'client_secret' => 'foo_client_secret',
-            'from' => [
-                'address' => 'taylor@laravel.com',
-                'name' => 'Taylor Otwell',
-            ],
         ],
         new ConfigurationMissing('tenant_id'),
     ],
@@ -267,10 +255,6 @@ it('throws exceptions when config is invalid', function (array $config, Exceptio
             'tenant_id' => 123,
             'client_id' => 'foo_client_id',
             'client_secret' => 'foo_client_secret',
-            'from' => [
-                'address' => 'taylor@laravel.com',
-                'name' => 'Taylor Otwell',
-            ],
         ],
         new ConfigurationInvalid('tenant_id', 123),
     ],
@@ -279,10 +263,6 @@ it('throws exceptions when config is invalid', function (array $config, Exceptio
             'transport' => 'microsoft-graph',
             'tenant_id' => 'foo_tenant_id',
             'client_secret' => 'foo_client_secret',
-            'from' => [
-                'address' => 'taylor@laravel.com',
-                'name' => 'Taylor Otwell',
-            ],
         ],
         new ConfigurationMissing('client_id'),
     ],
@@ -292,10 +272,6 @@ it('throws exceptions when config is invalid', function (array $config, Exceptio
             'tenant_id' => 'foo_tenant_id',
             'client_id' => '',
             'client_secret' => 'foo_client_secret',
-            'from' => [
-                'address' => 'taylor@laravel.com',
-                'name' => 'Taylor Otwell',
-            ],
         ],
         new ConfigurationInvalid('client_id', ''),
     ],
@@ -304,10 +280,6 @@ it('throws exceptions when config is invalid', function (array $config, Exceptio
             'transport' => 'microsoft-graph',
             'tenant_id' => 'foo_tenant_id',
             'client_id' => 'foo_client_id',
-            'from' => [
-                'address' => 'taylor@laravel.com',
-                'name' => 'Taylor Otwell',
-            ],
         ],
         new ConfigurationMissing('client_secret'),
     ],
@@ -317,10 +289,6 @@ it('throws exceptions when config is invalid', function (array $config, Exceptio
             'tenant_id' => 'foo_tenant_id',
             'client_id' => 'foo_client_id',
             'client_secret' => null,
-            'from' => [
-                'address' => 'taylor@laravel.com',
-                'name' => 'Taylor Otwell',
-            ],
         ],
         new ConfigurationInvalid('client_secret', null),
     ],
@@ -330,20 +298,7 @@ it('throws exceptions when config is invalid', function (array $config, Exceptio
             'tenant_id' => 'foo_tenant_id',
             'client_id' => 'foo_client_id',
             'client_secret' => 'foo_client_secret',
-        ],
-        new ConfigurationMissing('from.address'),
-    ],
-    [
-        [
-            'transport' => 'microsoft-graph',
-            'tenant_id' => 'foo_tenant_id',
-            'client_id' => 'foo_client_id',
-            'client_secret' => 'foo_client_secret',
             'access_token_ttl' => false,
-            'from' => [
-                'address' => 'taylor@laravel.com',
-                'name' => 'Taylor Otwell',
-            ],
         ],
         new ConfigurationInvalid('access_token_ttl', false),
     ],
@@ -355,10 +310,10 @@ it('sends html mails with inline images with microsoft graph', function () {
         'client_id' => 'foo_client_id',
         'client_secret' => 'foo_client_secret',
         'tenant_id' => 'foo_tenant_id',
-        'from' => [
-            'address' => 'taylor@laravel.com',
-            'name' => 'Taylor Otwell',
-        ],
+    ]);
+    Config::set('mail.from', [
+        'address' => 'taylor@laravel.com',
+        'name' => 'Taylor Otwell',
     ]);
     Config::set('mail.default', 'microsoft-graph');
     Config::set('filesystems.default', 'local');
@@ -438,10 +393,6 @@ test('the configured mail sender can be overwritten', function () {
         'client_id' => 'foo_client_id',
         'client_secret' => 'foo_client_secret',
         'tenant_id' => 'foo_tenant_id',
-        'from' => [
-            'address' => 'taylor@laravel.com',
-            'name' => 'Taylor Otwell',
-        ],
     ]);
     Config::set('mail.default', 'microsoft-graph');
 
