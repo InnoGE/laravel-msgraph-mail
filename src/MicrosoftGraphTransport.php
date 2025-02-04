@@ -12,6 +12,8 @@ use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\AbstractTransport;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
+use Symfony\Component\Mime\Header\HeaderInterface;
+use Symfony\Component\Mime\Header\Headers;
 use Symfony\Component\Mime\MessageConverter;
 
 class MicrosoftGraphTransport extends AbstractTransport
@@ -40,6 +42,7 @@ class MicrosoftGraphTransport extends AbstractTransport
         $html = $email->getHtmlBody();
 
         [$attachments, $html] = $this->prepareAttachments($email, $html);
+        $headers = $this->toInternetMessageHeaders($email->getHeaders());
 
         $payload = [
             'message' => [
@@ -56,9 +59,10 @@ class MicrosoftGraphTransport extends AbstractTransport
                 'attachments' => $attachments,
             ],
             'saveToSentItems' => config('mail.mailers.microsoft-graph.save_to_sent_items', false) ?? false,
-            'internetMessageHeaders' => $this->toInternetMessageHeaders($message->getHeaders()),
-
         ];
+        if ($headers !== null) {
+            $payload['internetMessageHeaders'] = $headers;
+        }
 
         $this->microsoftGraphApiService->sendMail($envelope->getSender()->getAddress(), $payload);
     }
@@ -116,17 +120,18 @@ class MicrosoftGraphTransport extends AbstractTransport
     }
 
     /**
-     * Transforms given Swift Mime SimpleHeaderSet into
+     * Transforms given Symfony Headers
      * Microsoft Graph internet message headers
-     * @param \Swift_Mime_SimpleHeaderSet $headers
+     * @param Headers $headers
      * @return array|null
      */
-    protected function toInternetMessageHeaders(\Swift_Mime_SimpleHeaderSet $headers): ?array {
+    protected function toInternetMessageHeaders(Headers $headers): ?array {
         $customHeaders = [];
 
-        foreach ($headers->getAll() as $header) {
-            $name = $header->getFieldName();
-            $body = $header->getFieldBody();
+
+        foreach ($headers->all() as $header) {
+            $name = $header->getName();
+            $body = $header->getBodyAsString();
 
             if (isset($name, $body) && str_starts_with($name, 'X-')) {
                 $customHeaders[] = [
