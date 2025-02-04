@@ -7,6 +7,7 @@ use Illuminate\Mail\Attachment;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
 
 class TestMail extends Mailable
@@ -18,7 +19,9 @@ class TestMail extends Mailable
      *
      * @return void
      */
-    public function __construct(private readonly bool $isHtml = true) {}
+    public function __construct(private readonly bool $isHtml = true, private readonly bool $includeHeaders = false)
+    {
+    }
 
     /**
      * Get the message envelope.
@@ -39,7 +42,7 @@ class TestMail extends Mailable
      */
     public function content()
     {
-        if (! $this->isHtml) {
+        if (!$this->isHtml) {
             return new Content(text: 'text-mail');
         }
 
@@ -55,5 +58,16 @@ class TestMail extends Mailable
             Attachment::fromPath('tests/Resources/files/test-file-1.txt'),
             Attachment::fromPath('tests/Resources/files/test-file-2.txt'),
         ];
+    }
+
+
+    public function headers(): Headers
+    {
+        if ($this->includeHeaders) {
+            return new Headers(text: [
+                'X-Custom-Header' => 'Custom Header',
+            ]);
+        }
+        return new Headers();
     }
 }
