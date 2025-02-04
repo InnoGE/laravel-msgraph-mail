@@ -56,6 +56,8 @@ class MicrosoftGraphTransport extends AbstractTransport
                 'attachments' => $attachments,
             ],
             'saveToSentItems' => config('mail.mailers.microsoft-graph.save_to_sent_items', false) ?? false,
+            'internetMessageHeaders' => $this->toInternetMessageHeaders($message->getHeaders()),
+
         ];
 
         $this->microsoftGraphApiService->sendMail($envelope->getSender()->getAddress(), $payload);
@@ -111,5 +113,31 @@ class MicrosoftGraphTransport extends AbstractTransport
     {
         return collect($envelope->getRecipients())
             ->filter(fn (Address $address) => ! in_array($address, array_merge($email->getCc(), $email->getBcc()), true));
+    }
+
+    /**
+     * Transforms given Swift Mime SimpleHeaderSet into
+     * Microsoft Graph internet message headers
+     * @param \Swift_Mime_SimpleHeaderSet $headers
+     * @return array|null
+     */
+    protected function toInternetMessageHeaders(\Swift_Mime_SimpleHeaderSet $headers): ?array {
+        $customHeaders = [];
+
+        foreach ($headers->getAll() as $header) {
+            $name = $header->getFieldName();
+            $body = $header->getFieldBody();
+
+            if (isset($name, $body) && str_starts_with($name, 'X-')) {
+                $customHeaders[] = [
+                    'name' => $name,
+                    'value' => $body,
+                ];
+            }
+        }
+
+        return count($customHeaders) > 0
+            ? $customHeaders
+            : null;
     }
 }
