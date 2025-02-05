@@ -601,12 +601,12 @@ it('sends custom mail headers with microsoft graph', function () {
                             'isInline' => false,
                         ],
                     ],
+                    'internetMessageHeaders' => [[
+                        'name' => 'X-Custom-Header',
+                        'value' => 'Custom Header'
+                    ]]
                 ],
-                'saveToSentItems' => false,
-                'internetMessageHeaders' => [[
-                    'name' => 'X-Custom-Header',
-                    'value' => 'Custom Header'
-                ]]
+                'saveToSentItems' => false
             ]);
 
         return true;
