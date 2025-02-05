@@ -61,7 +61,7 @@ class MicrosoftGraphTransport extends AbstractTransport
             'saveToSentItems' => config('mail.mailers.microsoft-graph.save_to_sent_items', false) ?? false,
         ];
         if ($headers !== null) {
-            $payload['internetMessageHeaders'] = $headers;
+            $payload['message']['internetMessageHeaders'] = $headers;
         }
 
         $this->microsoftGraphApiService->sendMail($envelope->getSender()->getAddress(), $payload);
