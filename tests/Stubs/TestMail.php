@@ -19,9 +19,7 @@ class TestMail extends Mailable
      *
      * @return void
      */
-    public function __construct(private readonly bool $isHtml = true, private readonly bool $includeHeaders = false)
-    {
-    }
+    public function __construct(private readonly bool $isHtml = true, private readonly bool $includeHeaders = false) {}
 
     /**
      * Get the message envelope.
@@ -42,7 +40,7 @@ class TestMail extends Mailable
      */
     public function content()
     {
-        if (!$this->isHtml) {
+        if (! $this->isHtml) {
             return new Content(text: 'text-mail');
         }
 
@@ -60,7 +58,6 @@ class TestMail extends Mailable
         ];
     }
 
-
     public function headers(): Headers
     {
         if ($this->includeHeaders) {
@@ -68,6 +65,7 @@ class TestMail extends Mailable
                 'X-Custom-Header' => 'Custom Header',
             ]);
         }
-        return new Headers();
+
+        return new Headers;
     }
 }

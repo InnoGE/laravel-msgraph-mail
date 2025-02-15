@@ -13,7 +13,6 @@ use Symfony\Component\Mailer\Transport\AbstractTransport;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\Header\HeaderInterface;
-use Symfony\Component\Mime\Header\Headers;
 use Symfony\Component\Mime\MessageConverter;
 
 class MicrosoftGraphTransport extends AbstractTransport
@@ -42,7 +41,6 @@ class MicrosoftGraphTransport extends AbstractTransport
         $html = $email->getHtmlBody();
 
         [$attachments, $html] = $this->prepareAttachments($email, $html);
-        $headers = $this->toInternetMessageHeaders($email->getHeaders());
 
         $payload = [
             'message' => [
@@ -60,7 +58,8 @@ class MicrosoftGraphTransport extends AbstractTransport
             ],
             'saveToSentItems' => config('mail.mailers.microsoft-graph.save_to_sent_items', false) ?? false,
         ];
-        if ($headers !== null) {
+
+        if (filled($headers = $this->getInternetMessageHeaders($email))) {
             $payload['message']['internetMessageHeaders'] = $headers;
         }
 
@@ -121,28 +120,15 @@ class MicrosoftGraphTransport extends AbstractTransport
 
     /**
      * Transforms given Symfony Headers
-     * Microsoft Graph internet message headers
-     * @param Headers $headers
-     * @return array|null
+     * to Microsoft Graph internet message headers
+     * see https://learn.microsoft.com/en-us/graph/api/resources/internetmessageheader?view=graph-rest-1.0
      */
-    protected function toInternetMessageHeaders(Headers $headers): ?array {
-        $customHeaders = [];
-
-
-        foreach ($headers->all() as $header) {
-            $name = $header->getName();
-            $body = $header->getBodyAsString();
-
-            if (isset($name, $body) && str_starts_with($name, 'X-')) {
-                $customHeaders[] = [
-                    'name' => $name,
-                    'value' => $body,
-                ];
-            }
-        }
-
-        return count($customHeaders) > 0
-            ? $customHeaders
-            : null;
+    protected function getInternetMessageHeaders(Email $email): ?array
+    {
+        return collect($email->getHeaders()->all())
+            ->filter(fn (HeaderInterface $header) => str_starts_with($header->getName(), 'X-'))
+            ->map(fn (HeaderInterface $header) => ['name' => $header->getName(), 'value' => $header->getBodyAsString()])
+            ->values()
+            ->all() ?: null;
     }
 }

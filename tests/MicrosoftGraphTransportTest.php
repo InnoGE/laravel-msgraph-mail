@@ -521,7 +521,6 @@ test('the configured mail sender can be overwritten', function () {
     });
 });
 
-
 it('sends custom mail headers with microsoft graph', function () {
     Config::set('mail.mailers.microsoft-graph', [
         'transport' => 'microsoft-graph',
@@ -603,10 +602,10 @@ it('sends custom mail headers with microsoft graph', function () {
                     ],
                     'internetMessageHeaders' => [[
                         'name' => 'X-Custom-Header',
-                        'value' => 'Custom Header'
-                    ]]
+                        'value' => 'Custom Header',
+                    ]],
                 ],
-                'saveToSentItems' => false
+                'saveToSentItems' => false,
             ]);
 
         return true;
