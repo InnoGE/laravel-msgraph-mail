@@ -30,8 +30,7 @@
         "pestphp/pest": "^1.21|^2.0|^3.0",
         "pestphp/pest-plugin-laravel": "^1.21|^2.0|^3.0",
         "phpstan/extension-installer": "^1.1",
-        "spatie/laravel-ray": "^1.26",
-
+        "spatie/laravel-ray": "^1.26"
     },
     "autoload": {
         "psr-4": {
