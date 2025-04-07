@@ -1,6 +1,11 @@
 parameters:
 	ignoreErrors:
 		-
+			message: "#^Method InnoGE\\\\LaravelMsGraphMail\\\\MicrosoftGraphTransport\\:\\:getInternetMessageHeaders\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/MicrosoftGraphTransport.php
+
+		-
 			message: "#^Method InnoGE\\\\LaravelMsGraphMail\\\\MicrosoftGraphTransport\\:\\:transformEmailAddress\\(\\) return type has no value type specified in iterable type array\\.$#"
 			count: 1
 			path: src/MicrosoftGraphTransport.php
@@ -17,6 +22,11 @@ parameters:
 
 		-
 			message: "#^Parameter \\#2 \\$html of method InnoGE\\\\LaravelMsGraphMail\\\\MicrosoftGraphTransport\\:\\:prepareAttachments\\(\\) expects string\\|null, resource\\|string\\|null given\\.$#"
+			count: 1
+			path: src/MicrosoftGraphTransport.php
+
+		-
+			message: "#^Unable to resolve the template type TKey in call to function collect$#"
 			count: 1
 			path: src/MicrosoftGraphTransport.php
 

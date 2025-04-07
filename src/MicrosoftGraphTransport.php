@@ -12,6 +12,7 @@ use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\AbstractTransport;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
+use Symfony\Component\Mime\Header\HeaderInterface;
 use Symfony\Component\Mime\MessageConverter;
 
 class MicrosoftGraphTransport extends AbstractTransport
@@ -57,6 +58,10 @@ class MicrosoftGraphTransport extends AbstractTransport
             ],
             'saveToSentItems' => config('mail.mailers.microsoft-graph.save_to_sent_items', false) ?? false,
         ];
+
+        if (filled($headers = $this->getInternetMessageHeaders($email))) {
+            $payload['message']['internetMessageHeaders'] = $headers;
+        }
 
         $this->microsoftGraphApiService->sendMail($envelope->getSender()->getAddress(), $payload);
     }
@@ -111,5 +116,19 @@ class MicrosoftGraphTransport extends AbstractTransport
     {
         return collect($envelope->getRecipients())
             ->filter(fn (Address $address) => ! in_array($address, array_merge($email->getCc(), $email->getBcc()), true));
+    }
+
+    /**
+     * Transforms given Symfony Headers
+     * to Microsoft Graph internet message headers
+     * see https://learn.microsoft.com/en-us/graph/api/resources/internetmessageheader?view=graph-rest-1.0
+     */
+    protected function getInternetMessageHeaders(Email $email): ?array
+    {
+        return collect($email->getHeaders()->all())
+            ->filter(fn (HeaderInterface $header) => str_starts_with($header->getName(), 'X-'))
+            ->map(fn (HeaderInterface $header) => ['name' => $header->getName(), 'value' => $header->getBodyAsString()])
+            ->values()
+            ->all() ?: null;
     }
 }
