@@ -49,12 +49,15 @@ First you need to add a new entry to the mail drivers array in your `config/mail
         'address' => env('MAIL_FROM_ADDRESS'),
         'name' => env('MAIL_FROM_NAME'),
     ],
+    'send_as' => env('MAIL_SEND_AS'),
     'save_to_sent_items' =>  env('MAIL_SAVE_TO_SENT_ITEMS', false),
 ],
 ```
 
 For the `client_id`, `client_secret` and `tenant_id` you need to use the values from the Azure App you created in the
 previous step.
+
+The `send_as` option is the email address which is the sender. When left blank then the default sender is used from the `from.address` parameter. To use a different sender the `from.address` (Azure User) must have access to this mailbox.
 
 The `save_to_sent_items` option in Microsoft Graph refers to a parameter that determines whether a sent email should be saved to the sender's "Sent Items" folder within their mailbox. When this option is set to true, the email will be automatically saved to the "Sent Items" folder, providing a record of the communication. Conversely, when it's set to false, the email will not be saved to the "Sent Items" folder.
 
