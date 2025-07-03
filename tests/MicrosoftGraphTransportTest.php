@@ -6,11 +6,11 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use InnoGE\LaravelMsGraphMail\Exceptions\ConfigurationInvalid;
-use InnoGE\LaravelMsGraphMail\Exceptions\ConfigurationMissing;
-use InnoGE\LaravelMsGraphMail\Exceptions\InvalidResponse;
-use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMail;
-use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMailWithInlineImage;
+use VictoRD11\LaravelMsGraphMail\Exceptions\ConfigurationInvalid;
+use VictoRD11\LaravelMsGraphMail\Exceptions\ConfigurationMissing;
+use VictoRD11\LaravelMsGraphMail\Exceptions\InvalidResponse;
+use VictoRD11\LaravelMsGraphMail\Tests\Stubs\TestMail;
+use VictoRD11\LaravelMsGraphMail\Tests\Stubs\TestMailWithInlineImage;
 
 it('sends html mails with microsoft graph', function () {
     Config::set('mail.mailers.microsoft-graph', [
@@ -26,7 +26,7 @@ it('sends html mails with microsoft graph', function () {
     ]);
     Config::set('mail.default', 'microsoft-graph');
 
-    Cache::set('microsoft-graph-api-access-token', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-client-credentials-access-token', 'foo_access_token', 3600);
 
     Http::fake();
 
@@ -112,7 +112,7 @@ it('sends text mails with microsoft graph', function () {
     ]);
     Config::set('mail.default', 'microsoft-graph');
 
-    Cache::set('microsoft-graph-api-access-token', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-client-credentials-access-token', 'foo_access_token', 3600);
 
     Http::fake();
 
@@ -217,7 +217,7 @@ it('creates an oauth access token', function () {
         return true;
     });
 
-    expect(Cache::get('microsoft-graph-api-access-token'))
+    expect(Cache::get('microsoft-graph-api-client-credentials-access-token'))
         ->toBe('foo_access_token');
 });
 
@@ -364,7 +364,7 @@ it('sends html mails with inline images with microsoft graph', function () {
     Config::set('filesystems.default', 'local');
     Config::set('filesystems.disks.local.root', realpath(__DIR__.'/Resources/files'));
 
-    Cache::set('microsoft-graph-api-access-token', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-client-credentials-access-token', 'foo_access_token', 3600);
 
     Http::fake();
 
@@ -445,7 +445,7 @@ test('the configured mail sender can be overwritten', function () {
     ]);
     Config::set('mail.default', 'microsoft-graph');
 
-    Cache::set('microsoft-graph-api-access-token', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-client-credentials-access-token', 'foo_access_token', 3600);
 
     Http::fake();
 
@@ -535,7 +535,7 @@ it('sends custom mail headers with microsoft graph', function () {
     ]);
     Config::set('mail.default', 'microsoft-graph');
 
-    Cache::set('microsoft-graph-api-access-token', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-client-credentials-access-token', 'foo_access_token', 3600);
 
     Http::fake();
 
@@ -611,3 +611,110 @@ it('sends custom mail headers with microsoft graph', function () {
         return true;
     });
 });
+
+it('creates an oauth access token with password authentication', function () {
+    Config::set('mail.mailers.microsoft-graph', [
+        'transport' => 'microsoft-graph',
+        'auth_method' => 'password',
+        'client_id' => 'foo_client_id',
+        'client_secret' => 'foo_client_secret',
+        'tenant_id' => 'foo_tenant_id',
+        'username' => 'test@example.com',
+        'password' => 'test_password',
+        'from' => [
+            'address' => 'taylor@laravel.com',
+            'name' => 'Taylor Otwell',
+        ],
+    ]);
+    Config::set('mail.default', 'microsoft-graph');
+
+    Http::fake([
+        'https://login.microsoftonline.com/foo_tenant_id/oauth2/v2.0/token' => Http::response(['access_token' => 'foo_access_token']),
+        'https://graph.microsoft.com/v1.0*' => Http::response(['value' => []]),
+    ]);
+
+    Mail::to('taylor@laravel.com')
+        ->send(new TestMail(false));
+
+    Http::assertSent(function (Request $request) {
+        if (Str::startsWith($request->url(), 'https://login.microsoftonline.com')) {
+            expect($request)
+                ->url()->toBe('https://login.microsoftonline.com/foo_tenant_id/oauth2/v2.0/token')
+                ->isForm()->toBeTrue()
+                ->body()->toBe('grant_type=password&username=test%40example.com&password=test_password&client_id=foo_client_id&client_secret=foo_client_secret&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default');
+        }
+
+        return true;
+    });
+
+    expect(Cache::get('microsoft-graph-api-password-access-token'))
+        ->toBe('foo_access_token');
+});
+
+it('throws exceptions when password auth config is invalid', function (array $config, Exception $exception) {
+    Config::set('mail.mailers.microsoft-graph', $config);
+    Config::set('mail.default', 'microsoft-graph');
+
+    expect(fn () => Mail::to('caleb@livewire.com')->send(new TestMail(false)))
+        ->toThrow(get_class($exception), $exception->getMessage());
+})->with([
+    [
+        [
+            'transport' => 'microsoft-graph',
+            'auth_method' => 'password',
+            'client_id' => 'foo_client_id',
+            'client_secret' => 'foo_client_secret',
+            'tenant_id' => 'foo_tenant_id',
+            'from' => [
+                'address' => 'taylor@laravel.com',
+                'name' => 'Taylor Otwell',
+            ],
+        ],
+        new ConfigurationMissing('username'),
+    ],
+    [
+        [
+            'transport' => 'microsoft-graph',
+            'auth_method' => 'password',
+            'client_id' => 'foo_client_id',
+            'client_secret' => 'foo_client_secret',
+            'tenant_id' => 'foo_tenant_id',
+            'username' => 'test@example.com',
+            'from' => [
+                'address' => 'taylor@laravel.com',
+                'name' => 'Taylor Otwell',
+            ],
+        ],
+        new ConfigurationMissing('password'),
+    ],
+    [
+        [
+            'transport' => 'microsoft-graph',
+            'auth_method' => 'password',
+            'client_id' => 'foo_client_id',
+            'client_secret' => 'foo_client_secret',
+            'tenant_id' => 'foo_tenant_id',
+            'username' => '',
+            'password' => 'test_password',
+            'from' => [
+                'address' => 'taylor@laravel.com',
+                'name' => 'Taylor Otwell',
+            ],
+        ],
+        new ConfigurationInvalid('username', ''),
+    ],
+    [
+        [
+            'transport' => 'microsoft-graph',
+            'auth_method' => 'invalid_method',
+            'client_id' => 'foo_client_id',
+            'client_secret' => 'foo_client_secret',
+            'tenant_id' => 'foo_tenant_id',
+            'from' => [
+                'address' => 'taylor@laravel.com',
+                'name' => 'Taylor Otwell',
+            ],
+        ],
+        new ConfigurationInvalid('auth_method', 'invalid_method'),
+    ],
+]);

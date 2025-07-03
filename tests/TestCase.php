@@ -1,10 +1,10 @@
 <?php
 
-namespace InnoGE\LaravelMsGraphMail\Tests;
+namespace VictoRD11\LaravelMsGraphMail\Tests;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\View;
-use InnoGE\LaravelMsGraphMail\LaravelMsGraphMailServiceProvider;
+use VictoRD11\LaravelMsGraphMail\LaravelMsGraphMailServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 class TestCase extends Orchestra
@@ -24,7 +24,7 @@ class TestCase extends Orchestra
         parent::setUp();
 
         Factory::guessFactoryNamesUsing(
-            fn (string $modelName) => 'InnoGE\\LaravelMsGraphMail\\Database\\Factories\\'.class_basename($modelName).'Factory'
+            fn (string $modelName) => 'VictoRD11\\LaravelMsGraphMail\\Database\\Factories\\'.class_basename($modelName).'Factory'
         );
 
         View::addLocation('tests/Resources/views');

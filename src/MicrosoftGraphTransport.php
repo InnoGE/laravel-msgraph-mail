@@ -1,10 +1,10 @@
 <?php
 
-namespace InnoGE\LaravelMsGraphMail;
+namespace VictoRD11\LaravelMsGraphMail;
 
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
-use InnoGE\LaravelMsGraphMail\Services\MicrosoftGraphApiService;
+use VictoRD11\LaravelMsGraphMail\Services\MicrosoftGraphApiService;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Mailer\Envelope;

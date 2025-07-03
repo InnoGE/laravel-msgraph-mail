@@ -1,6 +1,6 @@
 <?php
 
-namespace InnoGE\LaravelMsGraphMail\Exceptions;
+namespace VictoRD11\LaravelMsGraphMail\Exceptions;
 
 use Exception;
 

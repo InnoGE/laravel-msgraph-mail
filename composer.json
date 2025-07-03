@@ -1,17 +1,25 @@
 {
-    "name": "innoge/laravel-msgraph-mail",
+    "name": "victord11/laravel-msgraph-mail",
     "description": "Laravel Mail driver for Microsoft Office 365 using the MSGraph API",
     "keywords": [
+        "VictoRD11",
         "InnoGE",
         "laravel",
-        "laravel-msgraph-mail"
+        "laravel-msgraph-mail",
+        "microsoft",
+        "microsoft-graph"
     ],
-    "homepage": "https://github.com/innoge/laravel-msgraph-mail",
+    "homepage": "https://github.com/victord11/laravel-msgraph-mail",
     "license": "MIT",
     "authors": [
         {
             "name": "Tim Geisendoerfer",
             "email": "geisi@users.noreply.github.com",
+            "role": "Developer"
+        },
+        {
+            "name": "Mazur Viktor",
+            "email": "victord11@ukr.net",
             "role": "Developer"
         }
     ],
@@ -34,12 +42,12 @@
     },
     "autoload": {
         "psr-4": {
-            "InnoGE\\LaravelMsGraphMail\\": "src"
+            "VictoRD11\\LaravelMsGraphMail\\": "src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "InnoGE\\LaravelMsGraphMail\\Tests\\": "tests"
+            "VictoRD11\\LaravelMsGraphMail\\Tests\\": "tests"
         }
     },
     "scripts": {
@@ -59,7 +67,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "InnoGE\\LaravelMsGraphMail\\LaravelMsGraphMailServiceProvider"
+                "VictoRD11\\LaravelMsGraphMail\\LaravelMsGraphMailServiceProvider"
             ]
         }
     },

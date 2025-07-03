@@ -1,6 +1,6 @@
 <?php
 
-namespace InnoGE\LaravelMsGraphMail\Tests\Stubs;
+namespace VictoRD11\LaravelMsGraphMail\Tests\Stubs;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
