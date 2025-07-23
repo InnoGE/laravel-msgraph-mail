@@ -19,7 +19,7 @@ class TestMail extends Mailable
      *
      * @return void
      */
-    public function __construct(private readonly bool $isHtml = true, private readonly bool $includeHeaders = false) {}
+    public function __construct(private readonly bool $isHtml = true, private readonly bool $includeHeaders = false, private readonly ?bool $saveToSentItems = null) {}
 
     /**
      * Get the message envelope.
@@ -30,6 +30,9 @@ class TestMail extends Mailable
     {
         return new Envelope(
             subject: 'Dev Test',
+            metadata: isset($this->saveToSentItems) ? [
+                'saveToSentItems' => $this->saveToSentItems,
+            ] : [],
         );
     }
 
