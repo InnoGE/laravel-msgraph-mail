@@ -26,7 +26,7 @@ it('sends html mails with microsoft graph', function () {
     ]);
     Config::set('mail.default', 'microsoft-graph');
 
-    Cache::set('microsoft-graph-api-access-token', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-access-token-foo_tenant_id', 'foo_access_token', 3600);
 
     Http::fake();
 
@@ -112,7 +112,7 @@ it('sends text mails with microsoft graph', function () {
     ]);
     Config::set('mail.default', 'microsoft-graph');
 
-    Cache::set('microsoft-graph-api-access-token', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-access-token-foo_tenant_id', 'foo_access_token', 3600);
 
     Http::fake();
 
@@ -217,7 +217,7 @@ it('creates an oauth access token', function () {
         return true;
     });
 
-    expect(Cache::get('microsoft-graph-api-access-token'))
+    expect(Cache::get('microsoft-graph-api-access-token-foo_tenant_id'))
         ->toBe('foo_access_token');
 });
 
@@ -364,7 +364,7 @@ it('sends html mails with inline images with microsoft graph', function () {
     Config::set('filesystems.default', 'local');
     Config::set('filesystems.disks.local.root', realpath(__DIR__.'/Resources/files'));
 
-    Cache::set('microsoft-graph-api-access-token', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-access-token-foo_tenant_id', 'foo_access_token', 3600);
 
     Http::fake();
 
@@ -445,7 +445,7 @@ test('the configured mail sender can be overwritten', function () {
     ]);
     Config::set('mail.default', 'microsoft-graph');
 
-    Cache::set('microsoft-graph-api-access-token', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-access-token-foo_tenant_id', 'foo_access_token', 3600);
 
     Http::fake();
 
@@ -535,7 +535,7 @@ it('sends custom mail headers with microsoft graph', function () {
     ]);
     Config::set('mail.default', 'microsoft-graph');
 
-    Cache::set('microsoft-graph-api-access-token', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-access-token-foo_tenant_id', 'foo_access_token', 3600);
 
     Http::fake();
 

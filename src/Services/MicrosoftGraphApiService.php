@@ -32,7 +32,7 @@ class MicrosoftGraphApiService
 
     protected function getAccessToken(): string
     {
-        return Cache::remember('microsoft-graph-api-access-token', $this->accessTokenTtl, function (): string {
+        return Cache::remember('microsoft-graph-api-access-token-'.$this->tenantId, $this->accessTokenTtl, function (): string {
             $response = Http::asForm()
                 ->post("https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token",
                     [
