@@ -24,6 +24,38 @@ class MicrosoftGraphApiService
             ->throw();
     }
 
+    public function saveMessage(string $from, array $payload): Response
+    {
+        return $this->getBaseRequest()
+            ->post("/users/{$from}/messages", $payload)
+            ->throw();
+    }
+
+    public function sendMessage(string $from, string $messageId): Response
+    {
+        return $this->getBaseRequest()
+            ->post("/users/{$from}/messages/{$messageId}/send")
+            ->throw();
+    }
+
+    public function createUploadSession(string $from, string $messageId, array $payload): Response
+    {
+        return $this->getBaseRequest()
+            ->post("/users/{$from}/messages/{$messageId}/attachments/createUploadSession", $payload)
+            ->throw();
+    }
+
+    public function uploadChunk(string $uploadUrl, mixed $chunk, int|string $start, int|string $end, int|string $contentSize): Response
+    {
+        return Http::withHeaders([
+                'Content-Length' => strlen($chunk),
+                'Content-Range'  => "bytes $start-$end/$contentSize",
+            ])
+            ->withBody($chunk, 'application/octet-stream')
+            ->put($uploadUrl)
+            ->throw();
+    }
+
     protected function getBaseRequest(): PendingRequest
     {
         return Http::withToken($this->getAccessToken())

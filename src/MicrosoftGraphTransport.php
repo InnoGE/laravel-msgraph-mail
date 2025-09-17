@@ -14,9 +14,13 @@ use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\Header\HeaderInterface;
 use Symfony\Component\Mime\MessageConverter;
+use Symfony\Component\Mime\Part\DataPart;
 
 class MicrosoftGraphTransport extends AbstractTransport
 {
+    protected const MAX_INLINE_ATTACHMENT_SIZE = 3.5 * 1024 * 1024;
+    protected const LARGE_ATTACHMENT_CHUNK_SIZE = 1024 * 1024;
+
     public function __construct(
         protected MicrosoftGraphApiService $microsoftGraphApiService,
         ?EventDispatcherInterface $dispatcher = null,
@@ -40,7 +44,7 @@ class MicrosoftGraphTransport extends AbstractTransport
 
         $html = $email->getHtmlBody();
 
-        [$attachments, $html] = $this->prepareAttachments($email, $html);
+        [$attachments, $largeAttachments, $html] = $this->prepareAttachments($email, $html);
 
         $payload = [
             'message' => [
@@ -59,20 +63,44 @@ class MicrosoftGraphTransport extends AbstractTransport
             'saveToSentItems' => config('mail.mailers.microsoft-graph.save_to_sent_items', false) ?? false,
         ];
 
+        $from = $envelope->getSender()->getAddress();
+
         if (filled($headers = $this->getInternetMessageHeaders($email))) {
             $payload['message']['internetMessageHeaders'] = $headers;
         }
 
-        $this->microsoftGraphApiService->sendMail($envelope->getSender()->getAddress(), $payload);
+        $skipLargeAttachments = config('mail.mailers.microsoft-graph.skip_large_attachments', false);
+        if ($skipLargeAttachments || count($largeAttachments) === 0) {
+            $this->microsoftGraphApiService->sendMail($from, $payload);
+
+            return;
+        }
+
+        $graphMessageResponse = $this->microsoftGraphApiService->saveMessage($from, $payload['message']);
+        $graphMessage = $graphMessageResponse->json();
+        $graphMessageId = $graphMessage['id'];
+
+        $this->prepareLargeAttachments($largeAttachments, $from, $graphMessageId);
+
+        $this->microsoftGraphApiService->sendMessage($from, $graphMessageId);
     }
 
     /**
-     * @return array<int, array<int<0, max>, array<string, bool|string|null>>|string|null>
+     * @return array<int, array<int<0, max>, array<string, bool|string|null>>|string|null, DataPart[]>
      */
     protected function prepareAttachments(Email $email, ?string $html): array
     {
         $attachments = [];
+        $largeAttachments = [];
         foreach ($email->getAttachments() as $attachment) {
+            $content = $attachment->getBody();
+            $contentSize = strlen($content);
+
+            if ($contentSize > self::MAX_INLINE_ATTACHMENT_SIZE) {
+                $largeAttachments[] = $attachment;
+                continue;
+            }
+
             $headers = $attachment->getPreparedHeaders();
             $fileName = $headers->getHeaderParameter('Content-Disposition', 'filename');
 
@@ -80,17 +108,17 @@ class MicrosoftGraphTransport extends AbstractTransport
                 '@odata.type' => '#microsoft.graph.fileAttachment',
                 'name' => $fileName,
                 'contentType' => $attachment->getMediaType(),
-                'contentBytes' => base64_encode($attachment->getBody()),
+                'contentBytes' => base64_encode($content),
                 'contentId' => $fileName,
                 'isInline' => $headers->getHeaderBody('Content-Disposition') === 'inline',
             ];
         }
 
-        return [$attachments, $html];
+        return [$attachments, $largeAttachments, $html];
     }
 
     /**
-     * @param  Collection<array-key, Address>  $recipients
+     * @param Collection<array-key, Address> $recipients
      * @return array<array-key, array<string, array<string, string>>>
      */
     protected function transformEmailAddresses(Collection $recipients): array
@@ -115,7 +143,7 @@ class MicrosoftGraphTransport extends AbstractTransport
     protected function getRecipients(Email $email, Envelope $envelope): Collection
     {
         return collect($envelope->getRecipients())
-            ->filter(fn (Address $address) => ! in_array($address, array_merge($email->getCc(), $email->getBcc()), true));
+            ->filter(fn (Address $address) => !in_array($address, array_merge($email->getCc(), $email->getBcc()), true));
     }
 
     /**
@@ -130,5 +158,46 @@ class MicrosoftGraphTransport extends AbstractTransport
             ->map(fn (HeaderInterface $header) => ['name' => $header->getName(), 'value' => $header->getBodyAsString()])
             ->values()
             ->all() ?: null;
+    }
+
+    /**
+     * @param DataPart[] $largeAttachments
+     * @param string $from
+     * @param string $graphMessageId
+     * @return void
+     */
+    private function prepareLargeAttachments(array $largeAttachments, string $from, string $graphMessageId): void
+    {
+        foreach ($largeAttachments as $attachment) {
+            $content = $attachment->getBody();
+            $contentSize = strlen($content);
+
+            $uploadSessionResponse = $this->microsoftGraphApiService->createUploadSession($from, $graphMessageId, [
+                'AttachmentItem' => [
+                    'attachmentType' => 'file',
+                    'name' => $attachment->getFilename(),
+                    'size' => $contentSize,
+                ]
+            ]);
+            $uploadSession = $uploadSessionResponse->json();
+            $uploadUrl = $uploadSession['uploadUrl'];
+
+            $this->uploadLargeAttachment($uploadUrl, $content, $contentSize);
+        }
+    }
+
+    private function uploadLargeAttachment(string $uploadUrl, string $content, int $contentSize): void
+    {
+        $totalChunks = ceil($contentSize / self::LARGE_ATTACHMENT_CHUNK_SIZE);
+        $start = 0;
+
+        for ($chunkIndex = 0; $chunkIndex < $totalChunks; $chunkIndex++) {
+            $end = min($start + self::LARGE_ATTACHMENT_CHUNK_SIZE - 1, $contentSize - 1);
+            $chunk = substr($content, $start, self::LARGE_ATTACHMENT_CHUNK_SIZE);
+
+            $this->microsoftGraphApiService->uploadChunk($uploadUrl, $chunk, $start, $end, $contentSize);
+
+            $start = $end + 1;
+        }
     }
 }
