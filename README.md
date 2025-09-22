@@ -60,6 +60,8 @@ The `save_to_sent_items` option in Microsoft Graph refers to a parameter that de
 
 By default, the save_to_sent_items option is set to false, which means that emails sent through Microsoft Graph won't be saved in the sender's "Sent Items" folder unless explicitly specified otherwise. This behavior can be useful in scenarios where you might want more control over which emails are saved as sent items, perhaps to reduce clutter or ensure confidentiality.
 
+This can be overridden by setting the `Mailable` or `Envelope` metadata field `saveToSentItems` to `true` or `false`.
+
 Now you can switch your default mail driver to the new `microsoft-graph` driver by setting the env variable:
 
 ```dotenv

@@ -8,6 +8,7 @@ use InnoGE\LaravelMsGraphMail\Services\MicrosoftGraphApiService;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Mailer\Envelope;
+use Symfony\Component\Mailer\Header\MetadataHeader;
 use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\AbstractTransport;
 use Symfony\Component\Mime\Address;
@@ -56,7 +57,7 @@ class MicrosoftGraphTransport extends AbstractTransport
                 'sender' => $this->transformEmailAddress($envelope->getSender()),
                 'attachments' => $attachments,
             ],
-            'saveToSentItems' => config('mail.mailers.microsoft-graph.save_to_sent_items', false) ?? false,
+            'saveToSentItems' => $this->getSaveToSentItems($email),
         ];
 
         if (filled($headers = $this->getInternetMessageHeaders($email))) {
@@ -126,9 +127,21 @@ class MicrosoftGraphTransport extends AbstractTransport
     protected function getInternetMessageHeaders(Email $email): ?array
     {
         return collect($email->getHeaders()->all())
-            ->filter(fn (HeaderInterface $header) => str_starts_with($header->getName(), 'X-'))
+            ->filter(fn (HeaderInterface $header) => ! $header instanceof MetadataHeader && str_starts_with($header->getName(), 'X-'))
             ->map(fn (HeaderInterface $header) => ['name' => $header->getName(), 'value' => $header->getBodyAsString()])
             ->values()
             ->all() ?: null;
+    }
+
+    protected function getSaveToSentItems(Email $email): bool
+    {
+        foreach ($email->getHeaders()->all() as $header) {
+            if ($header instanceof MetadataHeader && $header->getKey() === 'saveToSentItems') {
+                return filter_var($header->getValue(), FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+
+        // @phpstan-ignore return.type
+        return config('mail.mailers.microsoft-graph.save_to_sent_items', false) ?? false;
     }
 }
