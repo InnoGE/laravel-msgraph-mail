@@ -77,7 +77,7 @@ it('sends html mails with microsoft graph', function () {
                         [
                             '@odata.type' => '#microsoft.graph.fileAttachment',
                             'name' => 'test-file-1.txt',
-                            'contentType' => 'text',
+                            'contentType' => 'text/plain',
                             'contentBytes' => 'Zm9vCg==',
                             'contentId' => 'test-file-1.txt',
                             'isInline' => false,
@@ -85,7 +85,7 @@ it('sends html mails with microsoft graph', function () {
                         [
                             '@odata.type' => '#microsoft.graph.fileAttachment',
                             'name' => 'test-file-2.txt',
-                            'contentType' => 'text',
+                            'contentType' => 'text/plain',
                             'contentBytes' => 'Zm9vCg==',
                             'contentId' => 'test-file-2.txt',
                             'isInline' => false,
@@ -163,7 +163,7 @@ it('sends text mails with microsoft graph', function () {
                         [
                             '@odata.type' => '#microsoft.graph.fileAttachment',
                             'name' => 'test-file-1.txt',
-                            'contentType' => 'text',
+                            'contentType' => 'text/plain',
                             'contentBytes' => 'Zm9vCg==',
                             'contentId' => 'test-file-1.txt',
                             'isInline' => false,
@@ -171,7 +171,7 @@ it('sends text mails with microsoft graph', function () {
                         [
                             '@odata.type' => '#microsoft.graph.fileAttachment',
                             'name' => 'test-file-2.txt',
-                            'contentType' => 'text',
+                            'contentType' => 'text/plain',
                             'contentBytes' => 'Zm9vCg==',
                             'contentId' => 'test-file-2.txt',
                             'isInline' => false,
@@ -418,7 +418,7 @@ it('sends html mails with inline images with microsoft graph', function () {
                         [
                             '@odata.type' => '#microsoft.graph.fileAttachment',
                             'name' => $inlineImageContentId,
-                            'contentType' => 'image',
+                            'contentType' => 'image/jpeg',
                             'contentBytes' => '/9j/4AAQSkZJRgABAQEASABIAAD//gATQ3JlYXRlZCB3aXRoIEdJTVD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wgARCABLAGQDAREAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAWAQEBAQAAAAAAAAAAAAAAAAAABQj/2gAMAwEAAhADEAAAAZ71TDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH/xAAUEAEAAAAAAAAAAAAAAAAAAABw/9oACAEBAAEFAgL/xAAUEQEAAAAAAAAAAAAAAAAAAABw/9oACAEDAQE/AQL/xAAUEQEAAAAAAAAAAAAAAAAAAABw/9oACAECAQE/AQL/xAAUEAEAAAAAAAAAAAAAAAAAAABw/9oACAEBAAY/AgL/xAAUEAEAAAAAAAAAAAAAAAAAAABw/9oACAEBAAE/IQL/2gAMAwEAAgADAAAAEEkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkv/xAAUEQEAAAAAAAAAAAAAAAAAAABw/9oACAEDAQE/EAL/xAAUEQEAAAAAAAAAAAAAAAAAAABw/9oACAECAQE/EAL/xAAUEAEAAAAAAAAAAAAAAAAAAABw/9oACAEBAAE/EAL/2Q==',
                             'contentId' => $inlineImageContentId,
                             'isInline' => true,
@@ -499,7 +499,7 @@ test('the configured mail sender can be overwritten', function () {
                         [
                             '@odata.type' => '#microsoft.graph.fileAttachment',
                             'name' => 'test-file-1.txt',
-                            'contentType' => 'text',
+                            'contentType' => 'text/plain',
                             'contentBytes' => 'Zm9vCg==',
                             'contentId' => 'test-file-1.txt',
                             'isInline' => false,
@@ -507,7 +507,7 @@ test('the configured mail sender can be overwritten', function () {
                         [
                             '@odata.type' => '#microsoft.graph.fileAttachment',
                             'name' => 'test-file-2.txt',
-                            'contentType' => 'text',
+                            'contentType' => 'text/plain',
                             'contentBytes' => 'Zm9vCg==',
                             'contentId' => 'test-file-2.txt',
                             'isInline' => false,
@@ -586,7 +586,7 @@ it('sends custom mail headers with microsoft graph', function () {
                         [
                             '@odata.type' => '#microsoft.graph.fileAttachment',
                             'name' => 'test-file-1.txt',
-                            'contentType' => 'text',
+                            'contentType' => 'text/plain',
                             'contentBytes' => 'Zm9vCg==',
                             'contentId' => 'test-file-1.txt',
                             'isInline' => false,
@@ -594,7 +594,7 @@ it('sends custom mail headers with microsoft graph', function () {
                         [
                             '@odata.type' => '#microsoft.graph.fileAttachment',
                             'name' => 'test-file-2.txt',
-                            'contentType' => 'text',
+                            'contentType' => 'text/plain',
                             'contentBytes' => 'Zm9vCg==',
                             'contentId' => 'test-file-2.txt',
                             'isInline' => false,
