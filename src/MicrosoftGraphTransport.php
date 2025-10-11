@@ -63,7 +63,10 @@ class MicrosoftGraphTransport extends AbstractTransport
             $payload['message']['internetMessageHeaders'] = $headers;
         }
 
-        $this->microsoftGraphApiService->sendMail($envelope->getSender()->getAddress(), $payload);
+        $this->microsoftGraphApiService->sendMail(!empty(config('mail.mailers.microsoft-graph.send_as'))
+            ? config('mail.mailers.microsoft-graph.send_as')
+            : $envelope->getSender()->getAddress(),
+            $payload);
     }
 
     /**
