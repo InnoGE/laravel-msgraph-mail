@@ -1,41 +1,97 @@
 parameters:
 	ignoreErrors:
 		-
-			message: "#^Method InnoGE\\\\LaravelMsGraphMail\\\\MicrosoftGraphTransport\\:\\:getInternetMessageHeaders\\(\\) return type has no value type specified in iterable type array\\.$#"
+			message: '#^Cannot access offset ''address'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: src/LaravelMsGraphMailServiceProvider.php
+
+		-
+			message: '#^Parameter \#1 \$config of method InnoGE\\LaravelMsGraphMail\\LaravelMsGraphMailServiceProvider\:\:requireConfigString\(\) expects array\<string, mixed\>, array given\.$#'
+			identifier: argument.type
+			count: 3
+			path: src/LaravelMsGraphMailServiceProvider.php
+
+		-
+			message: '#^Cannot access offset 0 on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
 			count: 1
 			path: src/MicrosoftGraphTransport.php
 
 		-
-			message: "#^Method InnoGE\\\\LaravelMsGraphMail\\\\MicrosoftGraphTransport\\:\\:transformEmailAddress\\(\\) return type has no value type specified in iterable type array\\.$#"
+			message: '#^Method InnoGE\\LaravelMsGraphMail\\MicrosoftGraphTransport\:\:getInternetMessageHeaders\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
 			count: 1
 			path: src/MicrosoftGraphTransport.php
 
 		-
-			message: "#^Method InnoGE\\\\LaravelMsGraphMail\\\\MicrosoftGraphTransport\\:\\:transformEmailAddresses\\(\\) should return array\\<array\\<string, array\\<string, string\\>\\>\\> but returns array\\.$#"
+			message: '#^Method InnoGE\\LaravelMsGraphMail\\MicrosoftGraphTransport\:\:prepareAttachments\(\) should return array\<int, array\<int\<0, max\>, array\<string, bool\|string\|null\>\>\|string\|null\> but returns array\{list\<array\{''@odata\.type''\: ''\#microsoft\.graph…'', name\: mixed, contentType\: non\-falsy\-string, contentBytes\: string, contentId\: mixed, isInline\: bool\}\>, string\|null\}\.$#'
+			identifier: return.type
 			count: 1
 			path: src/MicrosoftGraphTransport.php
 
 		-
-			message: "#^Parameter \\#1 \\$message of static method Symfony\\\\Component\\\\Mime\\\\MessageConverter\\:\\:toEmail\\(\\) expects Symfony\\\\Component\\\\Mime\\\\Message, Symfony\\\\Component\\\\Mime\\\\RawMessage given\\.$#"
+			message: '#^Method InnoGE\\LaravelMsGraphMail\\MicrosoftGraphTransport\:\:transformEmailAddress\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
 			count: 1
 			path: src/MicrosoftGraphTransport.php
 
 		-
-			message: "#^Parameter \\#2 \\$html of method InnoGE\\\\LaravelMsGraphMail\\\\MicrosoftGraphTransport\\:\\:prepareAttachments\\(\\) expects string\\|null, resource\\|string\\|null given\\.$#"
+			message: '#^Method InnoGE\\LaravelMsGraphMail\\MicrosoftGraphTransport\:\:transformEmailAddresses\(\) should return array\<array\<string, array\<string, string\>\>\> but returns array\<mixed\>\.$#'
+			identifier: return.type
 			count: 1
 			path: src/MicrosoftGraphTransport.php
 
 		-
-			message: "#^Unable to resolve the template type TKey in call to function collect$#"
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<\(int\|string\),mixed\>\:\:filter\(\) expects \(callable\(mixed, int\|string\)\: bool\)\|null, Closure\(Symfony\\Component\\Mime\\Header\\HeaderInterface\)\: bool given\.$#'
+			identifier: argument.type
 			count: 1
 			path: src/MicrosoftGraphTransport.php
 
 		-
-			message: "#^Method InnoGE\\\\LaravelMsGraphMail\\\\Services\\\\MicrosoftGraphApiService\\:\\:getAccessToken\\(\\) should return string but returns mixed\\.$#"
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<\(int\|string\),mixed\>\:\:map\(\) expects callable\(mixed, int\|string\)\: array\{name\: string, value\: string\}, Closure\(Symfony\\Component\\Mime\\Header\\HeaderInterface\)\: array\{name\: string, value\: string\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/MicrosoftGraphTransport.php
+
+		-
+			message: '#^Parameter \#1 \$message of static method Symfony\\Component\\Mime\\MessageConverter\:\:toEmail\(\) expects Symfony\\Component\\Mime\\Message, Symfony\\Component\\Mime\\RawMessage given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/MicrosoftGraphTransport.php
+
+		-
+			message: '#^Parameter \#1 \$value of function collect expects Illuminate\\Contracts\\Support\\Arrayable\<\(int\|string\), mixed\>\|iterable\<\(int\|string\), mixed\>\|null, iterable given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/MicrosoftGraphTransport.php
+
+		-
+			message: '#^Parameter \#2 \$html of method InnoGE\\LaravelMsGraphMail\\MicrosoftGraphTransport\:\:prepareAttachments\(\) expects string\|null, resource\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/MicrosoftGraphTransport.php
+
+		-
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: src/MicrosoftGraphTransport.php
+
+		-
+			message: '#^Method InnoGE\\LaravelMsGraphMail\\Services\\MicrosoftGraphApiService\:\:getAccessToken\(\) should return string but returns mixed\.$#'
+			identifier: return.type
 			count: 1
 			path: src/Services/MicrosoftGraphApiService.php
 
 		-
-			message: "#^Method InnoGE\\\\LaravelMsGraphMail\\\\Services\\\\MicrosoftGraphApiService\\:\\:sendMail\\(\\) has parameter \\$payload with no value type specified in iterable type array\\.$#"
+			message: '#^Method InnoGE\\LaravelMsGraphMail\\Services\\MicrosoftGraphApiService\:\:sendMail\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Services/MicrosoftGraphApiService.php
+
+		-
+			message: '#^Parameter \#2 \$data of method Illuminate\\Http\\Client\\PendingRequest\<false\>\:\:post\(\) expects array\<0\|string, mixed\>\|Illuminate\\Contracts\\Support\\Arrayable\<string, mixed\>\|JsonSerializable, array given\.$#'
+			identifier: argument.type
 			count: 1
 			path: src/Services/MicrosoftGraphApiService.php
