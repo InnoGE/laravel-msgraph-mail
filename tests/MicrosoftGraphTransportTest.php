@@ -11,6 +11,8 @@ use InnoGE\LaravelMsGraphMail\Exceptions\ConfigurationMissing;
 use InnoGE\LaravelMsGraphMail\Exceptions\InvalidResponse;
 use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMail;
 use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMailWithInlineImage;
+use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMailWithMixedAttachments;
+use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMailWithMultipleInlineImages;
 
 it('sends html mails with microsoft graph', function () {
     Config::set('mail.mailers.microsoft-graph', [
@@ -607,6 +609,116 @@ it('sends custom mail headers with microsoft graph', function () {
                 ],
                 'saveToSentItems' => false,
             ]);
+
+        return true;
+    });
+});
+
+it('sends html mails with multiple inline images with unique content ids', function () {
+    Config::set('mail.mailers.microsoft-graph', [
+        'transport' => 'microsoft-graph',
+        'client_id' => 'foo_client_id',
+        'client_secret' => 'foo_client_secret',
+        'tenant_id' => 'foo_tenant_id',
+        'from' => [
+            'address' => 'taylor@laravel.com',
+            'name' => 'Taylor Otwell',
+        ],
+    ]);
+    Config::set('mail.default', 'microsoft-graph');
+    Config::set('filesystems.default', 'local');
+    Config::set('filesystems.disks.local.root', realpath(__DIR__.'/Resources/files'));
+
+    Cache::set('microsoft-graph-api-access-token-foo_tenant_id', 'foo_access_token', 3600);
+
+    Http::fake();
+
+    Mail::to('caleb@livewire.com')
+        ->send(new TestMailWithMultipleInlineImages);
+
+    Http::assertSent(function (Request $value) {
+        $body = json_decode($value->body());
+        $attachments = $body->message->attachments;
+        $htmlContent = $body->message->body->content;
+
+        // Verify we have exactly 2 inline attachments
+        expect($attachments)->toHaveCount(2);
+
+        // Get contentIds from both attachments
+        $contentId1 = $attachments[0]->contentId;
+        $contentId2 = $attachments[1]->contentId;
+
+        // Verify both are inline
+        expect($attachments[0]->isInline)->toBeTrue();
+        expect($attachments[1]->isInline)->toBeTrue();
+
+        // Verify each contentId appears in the HTML
+        expect($htmlContent)->toContain('cid:'.$contentId1);
+        expect($htmlContent)->toContain('cid:'.$contentId2);
+
+        // Verify the two contentIds are different (unique)
+        expect($contentId1)->not->toBe($contentId2);
+
+        return true;
+    });
+});
+
+it('handles mixed inline and regular attachments correctly', function () {
+    Config::set('mail.mailers.microsoft-graph', [
+        'transport' => 'microsoft-graph',
+        'client_id' => 'foo_client_id',
+        'client_secret' => 'foo_client_secret',
+        'tenant_id' => 'foo_tenant_id',
+        'from' => [
+            'address' => 'taylor@laravel.com',
+            'name' => 'Taylor Otwell',
+        ],
+    ]);
+    Config::set('mail.default', 'microsoft-graph');
+    Config::set('filesystems.default', 'local');
+    Config::set('filesystems.disks.local.root', realpath(__DIR__.'/Resources/files'));
+
+    Cache::set('microsoft-graph-api-access-token-foo_tenant_id', 'foo_access_token', 3600);
+
+    Http::fake();
+
+    Mail::to('caleb@livewire.com')
+        ->send(new TestMailWithMixedAttachments);
+
+    Http::assertSent(function (Request $value) {
+        $body = json_decode($value->body());
+        $attachments = $body->message->attachments;
+        $htmlContent = $body->message->body->content;
+
+        // Verify we have exactly 2 attachments (1 inline image + 1 regular file)
+        expect($attachments)->toHaveCount(2);
+
+        // Find inline and regular attachments
+        $inlineAttachment = null;
+        $regularAttachment = null;
+
+        foreach ($attachments as $attachment) {
+            if ($attachment->isInline) {
+                $inlineAttachment = $attachment;
+            } else {
+                $regularAttachment = $attachment;
+            }
+        }
+
+        // Verify we found both types
+        expect($inlineAttachment)->not->toBeNull();
+        expect($regularAttachment)->not->toBeNull();
+
+        // Verify inline attachment properties
+        expect($inlineAttachment->isInline)->toBeTrue();
+        expect($inlineAttachment->contentType)->toBe('image/jpeg');
+        expect($htmlContent)->toContain('cid:'.$inlineAttachment->contentId);
+
+        // Verify regular attachment properties
+        expect($regularAttachment->isInline)->toBeFalse();
+        expect($regularAttachment->name)->toBe('test-file-1.txt');
+        expect($regularAttachment->contentId)->toBe('test-file-1.txt');
+        expect($regularAttachment->contentType)->toBe('text/plain');
 
         return true;
     });
