@@ -56,7 +56,7 @@ jobs:
           echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
 
       - name: Remove larastan from dev dependencies
-        run: composer remove --dev nunomaduro/larastan
+        run: composer remove --dev larastan/larastan
 
       - name: Install dependencies
         run: |
