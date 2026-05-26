@@ -663,6 +663,37 @@ it('sends html mails with multiple inline images with unique content ids', funct
     });
 });
 
+it('sends mail from a delegated send_as address using the licensed user in the url', function () {
+    Config::set('mail.mailers.microsoft-graph', [
+        'transport' => 'microsoft-graph',
+        'client_id' => 'foo_client_id',
+        'client_secret' => 'foo_client_secret',
+        'tenant_id' => 'foo_tenant_id',
+        'from' => [
+            'address' => 'licensed@company.com',
+            'name' => 'Licensed User',
+        ],
+        'send_as' => 'shared-mailbox@company.com',
+    ]);
+    Config::set('mail.default', 'microsoft-graph');
+
+    Cache::set('microsoft-graph-api-access-token-foo_tenant_id', 'foo_access_token', 3600);
+
+    Http::fake();
+
+    Mail::to('caleb@livewire.com')->send(new TestMail(false));
+
+    Http::assertSent(function (Request $value) {
+        $body = json_decode($value->body(), true);
+
+        expect($value->url())->toBe('https://graph.microsoft.com/v1.0/users/licensed@company.com/sendMail');
+        expect($body['message']['sender']['emailAddress']['address'])->toBe('licensed@company.com');
+        expect($body['message']['from']['emailAddress']['address'])->toBe('shared-mailbox@company.com');
+
+        return true;
+    });
+});
+
 it('handles mixed inline and regular attachments correctly', function () {
     Config::set('mail.mailers.microsoft-graph', [
         'transport' => 'microsoft-graph',

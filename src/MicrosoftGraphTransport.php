@@ -42,6 +42,8 @@ class MicrosoftGraphTransport extends AbstractTransport
 
         [$attachments, $html] = $this->prepareAttachments($email, $html);
 
+        $sendAs = config('mail.mailers.microsoft-graph.send_as');
+
         $payload = [
             'message' => [
                 'subject' => $email->getSubject(),
@@ -54,6 +56,7 @@ class MicrosoftGraphTransport extends AbstractTransport
                 'bccRecipients' => $this->transformEmailAddresses(collect($email->getBcc())),
                 'replyTo' => $this->transformEmailAddresses(collect($email->getReplyTo())),
                 'sender' => $this->transformEmailAddress($envelope->getSender()),
+                ...(filled($sendAs) ? ['from' => ['emailAddress' => ['address' => $sendAs]]] : []),
                 'attachments' => $attachments,
             ],
             'saveToSentItems' => config('mail.mailers.microsoft-graph.save_to_sent_items', false) ?? false,
@@ -63,10 +66,7 @@ class MicrosoftGraphTransport extends AbstractTransport
             $payload['message']['internetMessageHeaders'] = $headers;
         }
 
-        $this->microsoftGraphApiService->sendMail(!empty(config('mail.mailers.microsoft-graph.send_as'))
-            ? config('mail.mailers.microsoft-graph.send_as')
-            : $envelope->getSender()->getAddress(),
-            $payload);
+        $this->microsoftGraphApiService->sendMail($envelope->getSender()->getAddress(), $payload);
     }
 
     /**
