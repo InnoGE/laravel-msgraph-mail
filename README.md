@@ -115,7 +115,8 @@ This path additionally requires the **`Mail.ReadWrite`** application permission 
 know:
 
 - Without `Mail.ReadWrite`, large sends throw a `MissingMailReadWritePermission` exception explaining the fix.
-- Draft-based sends are always stored in Sent Items — Graph offers no `saveToSentItems` control on this path.
+- Graph stores a sent draft in Sent Items unconditionally; when `save_to_sent_items` is disabled the package deletes
+  the sent message from Sent Items afterwards (best effort). Failed sends clean up their draft.
 
 ## AI Agent Support
 

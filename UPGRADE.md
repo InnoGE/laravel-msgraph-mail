@@ -26,8 +26,8 @@ logic.
 **Large mails need `Mail.ReadWrite` (only if you send them).** Mails above ~3 MB total are now sent
 automatically via a draft + upload sessions instead of failing with `ErrorMessageSizeExceeded`. This
 path requires the `Mail.ReadWrite` application permission with admin consent. Small mails continue to
-work with `Mail.Send` alone. Note: draft-based sends are always stored in Sent Items regardless of
-`save_to_sent_items`.
+work with `Mail.Send` alone. `save_to_sent_items` is honored on this path too: when disabled, the sent
+message is deleted from Sent Items after sending (best effort); failed sends delete their draft.
 
 **Constructor signatures changed** (only relevant if you construct or extend the classes yourself —
 normal mailer usage is unaffected): `MicrosoftGraphApiService` now takes a `ClientAuthentication`

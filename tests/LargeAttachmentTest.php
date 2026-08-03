@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use InnoGE\LaravelMsGraphMail\Exceptions\MissingMailReadWritePermission;
@@ -12,9 +13,22 @@ function fakeDraftEndpoints(): void
         'https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/attachments/createUploadSession' => Http::response(['uploadUrl' => 'https://upload.example.com/session-1']),
         'https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/attachments' => Http::response(['id' => 'attachment-id'], 201),
         'https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/send' => Http::response(null, 202),
-        'https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages' => Http::response(['id' => 'draft-id'], 201),
+        'https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/sent-id/permanentDelete' => Http::response(null, 204),
+        // The sent-copy lookup by internetMessageId (query string present).
+        'https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages?*' => Http::response(['value' => [
+            ['id' => 'draft-id', 'isDraft' => true],
+            ['id' => 'sent-id', 'isDraft' => false],
+        ]]),
+        'https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages' => Http::response(['id' => 'draft-id', 'internetMessageId' => '<message-id@innoge.de>'], 201),
         'https://upload.example.com/*' => Http::response(['id' => 'attachment-id'], 201),
     ]);
+}
+
+function sentRequestUrls(): array
+{
+    return Http::recorded()
+        ->map(fn (array $pair) => "{$pair[0]->method()} {$pair[0]->url()}")
+        ->all();
 }
 
 it('sends large mails via a draft with an upload session', function () {
@@ -26,20 +40,20 @@ it('sends large mails via a draft with an upload session', function () {
 
     Mail::to('caleb@livewire.com')->send(new TestMailWithLargeAttachment($large, $small));
 
-    $requests = [];
-    Http::assertSent(function (Request $request) use (&$requests) {
-        $requests[] = $request;
-
-        return true;
-    });
-
-    $urls = array_map(fn (Request $request) => "{$request->method()} {$request->url()}", $requests);
+    $requests = Http::recorded()->map(fn (array $pair) => $pair[0])->all();
+    $urls = sentRequestUrls();
 
     expect($urls)->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages')
         ->and($urls)->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/attachments/createUploadSession')
         ->and($urls)->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/attachments')
         ->and($urls)->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/send')
+        // save_to_sent_items defaults to false: the sent message is removed from Sent Items.
+        ->and($urls)->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/sent-id/permanentDelete')
         ->and($urls)->not->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/sendMail');
+
+    // The delete must happen after the send.
+    expect(array_search('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/sent-id/permanentDelete', $urls))
+        ->toBeGreaterThan(array_search('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/send', $urls));
 
     foreach ($requests as $request) {
         if (str_ends_with($request->url(), '/messages') && $request->method() === 'POST') {
@@ -81,6 +95,36 @@ it('keeps using sendMail for small mails', function () {
     Http::assertNotSent(fn (Request $request) => str_ends_with($request->url(), '/messages'));
 });
 
+it('keeps the sent message in Sent Items when save_to_sent_items is enabled', function () {
+    configureMicrosoftGraphMailer();
+    Config::set('mail.mailers.microsoft-graph.save_to_sent_items', true);
+    fakeDraftEndpoints();
+
+    Mail::to('caleb@livewire.com')->send(new TestMailWithLargeAttachment(str_repeat('L', 4_000_000)));
+
+    $urls = sentRequestUrls();
+
+    expect($urls)->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/send')
+        ->and(collect($urls)->contains(fn (string $url) => str_contains($url, 'permanentDelete')))->toBeFalse();
+});
+
+it('deletes the orphaned draft when an attachment upload fails', function () {
+    configureMicrosoftGraphMailer();
+
+    Http::fake([
+        'https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/attachments/createUploadSession' => Http::response(['error' => ['code' => 'ErrorInternalServerError']], 500),
+        'https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/permanentDelete' => Http::response(null, 204),
+        'https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages' => Http::response(['id' => 'draft-id', 'internetMessageId' => '<message-id@innoge.de>'], 201),
+    ]);
+
+    expect(fn () => Mail::to('caleb@livewire.com')->send(new TestMailWithLargeAttachment(str_repeat('L', 4_000_000))))
+        ->toThrow(RequestException::class);
+
+    // The orphaned draft is deleted directly by its id.
+    expect(sentRequestUrls())->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/permanentDelete')
+        ->and(sentRequestUrls())->not->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/send');
+});
+
 it('explains the missing Mail.ReadWrite permission on 403 draft failures', function () {
     configureMicrosoftGraphMailer();
 
@@ -88,6 +132,12 @@ it('explains the missing Mail.ReadWrite permission on 403 draft failures', funct
         'https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages' => Http::response(['error' => ['code' => 'ErrorAccessDenied']], 403),
     ]);
 
-    expect(fn () => Mail::to('caleb@livewire.com')->send(new TestMailWithLargeAttachment(str_repeat('L', 4_000_000))))
-        ->toThrow(MissingMailReadWritePermission::class, 'Mail.ReadWrite');
+    try {
+        Mail::to('caleb@livewire.com')->send(new TestMailWithLargeAttachment(str_repeat('L', 4_000_000)));
+        $this->fail('Expected MissingMailReadWritePermission to be thrown.');
+    } catch (MissingMailReadWritePermission $exception) {
+        expect($exception->getMessage())->toContain('Mail.ReadWrite')
+            // The original Graph error stays reachable for diagnosis.
+            ->and($exception->getPrevious())->toBeInstanceOf(RequestException::class);
+    }
 });

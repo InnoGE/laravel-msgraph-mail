@@ -19,6 +19,7 @@ use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\Header\HeaderInterface;
 use Symfony\Component\Mime\Message;
 use Symfony\Component\Mime\MessageConverter;
+use Throwable;
 
 class MicrosoftGraphTransport extends AbstractTransport
 {
@@ -66,78 +67,139 @@ class MicrosoftGraphTransport extends AbstractTransport
         $html = $this->bodyToString($email->getHtmlBody());
 
         $attachments = $this->prepareAttachments($email);
+        $saveToSentItems = $this->shouldSaveToSentItems($email);
 
-        $payload = [
-            'message' => [
-                'subject' => $email->getSubject(),
-                'body' => [
-                    'contentType' => $html === null ? 'Text' : 'HTML',
-                    'content' => $html ?: $this->bodyToString($email->getTextBody()),
-                ],
-                'toRecipients' => $this->transformEmailAddresses($this->getRecipients($email, $envelope)),
-                'ccRecipients' => $this->transformEmailAddresses(collect($email->getCc())),
-                'bccRecipients' => $this->transformEmailAddresses(collect($email->getBcc())),
-                'replyTo' => $this->transformEmailAddresses(collect($email->getReplyTo())),
-                'sender' => $this->transformEmailAddress($envelope->getSender()),
-                'attachments' => $attachments,
+        $message = [
+            'subject' => $email->getSubject(),
+            'body' => [
+                'contentType' => $html === null ? 'Text' : 'HTML',
+                'content' => $html ?: $this->bodyToString($email->getTextBody()),
             ],
-            'saveToSentItems' => $this->shouldSaveToSentItems($email),
+            'toRecipients' => $this->transformEmailAddresses($this->getRecipients($email, $envelope)),
+            'ccRecipients' => $this->transformEmailAddresses(collect($email->getCc())),
+            'bccRecipients' => $this->transformEmailAddresses(collect($email->getBcc())),
+            'replyTo' => $this->transformEmailAddresses(collect($email->getReplyTo())),
+            'sender' => $this->transformEmailAddress($envelope->getSender()),
         ];
 
-        if (filled($headers = $this->getInternetMessageHeaders($email))) {
-            $payload['message']['internetMessageHeaders'] = $headers;
-        }
-
         $from = $envelope->getSender()->getAddress();
+        $headers = $this->getInternetMessageHeaders($email);
 
-        if (strlen((string) json_encode($payload)) > self::SIMPLE_SEND_LIMIT) {
-            $this->sendViaDraft($from, $payload['message'], $attachments);
+        if ($this->estimatedRequestSize($message, $attachments) > self::SIMPLE_SEND_LIMIT) {
+            if (filled($headers)) {
+                $message['internetMessageHeaders'] = $headers;
+            }
+
+            $this->sendViaDraft($from, $message, $attachments, $saveToSentItems);
 
             return;
         }
 
-        $this->microsoftGraphApiService->sendMail($from, $payload);
+        $message['attachments'] = array_map($this->toFileAttachment(...), $attachments);
+        if (filled($headers)) {
+            $message['internetMessageHeaders'] = $headers;
+        }
+
+        $this->microsoftGraphApiService->sendMail($from, [
+            'message' => $message,
+            'saveToSentItems' => $saveToSentItems,
+        ]);
     }
 
     /**
-     * Requires the Mail.ReadWrite application permission. A sent draft is
-     * always stored in Sent Items — Graph has no saveToSentItems control here.
+     * Requires the Mail.ReadWrite application permission. Graph stores a sent
+     * draft in Sent Items unconditionally, so when saveToSentItems is disabled
+     * the sent message is deleted afterwards; a failed send deletes the
+     * orphaned draft.
      *
      * @param  array<string, mixed>  $message
-     * @param  list<array{'@odata.type': string, name: string|null, contentType: string, contentBytes: string, contentId: string|null, isInline: bool}>  $attachments
+     * @param  list<array{name: string|null, contentType: string, body: string, contentId: string|null, isInline: bool}>  $attachments
      */
-    protected function sendViaDraft(string $from, array $message, array $attachments): void
+    protected function sendViaDraft(string $from, array $message, array $attachments, bool $saveToSentItems): void
     {
-        unset($message['attachments']);
-
         try {
-            $messageId = $this->microsoftGraphApiService->createDraftMessage($from, $message);
+            ['id' => $messageId, 'internetMessageId' => $internetMessageId] = $this->microsoftGraphApiService->createDraftMessage($from, $message);
         } catch (RequestException $exception) {
-            throw $exception->response->status() === 403 ? new MissingMailReadWritePermission : $exception;
+            throw $exception->response->status() === 403 ? new MissingMailReadWritePermission($exception) : $exception;
         }
 
-        foreach ($attachments as $attachment) {
-            $contents = (string) base64_decode($attachment['contentBytes'], true);
+        try {
+            foreach ($attachments as $attachment) {
+                if (strlen($attachment['body']) > self::LARGE_ATTACHMENT_SIZE) {
+                    $this->microsoftGraphApiService->uploadAttachment($from, $messageId, array_filter([
+                        'attachmentType' => 'file',
+                        'name' => $attachment['name'],
+                        'size' => strlen($attachment['body']),
+                        'contentType' => $attachment['contentType'],
+                        'isInline' => $attachment['isInline'],
+                        'contentId' => $attachment['contentId'],
+                    ], fn (mixed $value): bool => $value !== null), $attachment['body']);
+                } else {
+                    $this->microsoftGraphApiService->addAttachment($from, $messageId, $this->toFileAttachment($attachment));
+                }
+            }
 
-            if (strlen($contents) > self::LARGE_ATTACHMENT_SIZE) {
-                $this->microsoftGraphApiService->uploadAttachment($from, $messageId, array_filter([
-                    'attachmentType' => 'file',
-                    'name' => $attachment['name'],
-                    'size' => strlen($contents),
-                    'contentType' => $attachment['contentType'],
-                    'isInline' => $attachment['isInline'],
-                    'contentId' => $attachment['contentId'],
-                ], fn (mixed $value): bool => $value !== null), $contents);
-            } else {
-                $this->microsoftGraphApiService->addAttachment($from, $messageId, $attachment);
+            $this->microsoftGraphApiService->sendDraftMessage($from, $messageId);
+        } catch (Throwable $exception) {
+            $this->deleteMessageQuietly($from, $messageId);
+
+            throw $exception;
+        }
+
+        if (! $saveToSentItems) {
+            $this->removeFromSentItems($from, $internetMessageId);
+        }
+    }
+
+    /**
+     * The message id changes when the sent draft moves to Sent Items, so the
+     * sent copy is located by its stable internet message id. Submission is
+     * asynchronous — poll briefly and give up quietly.
+     */
+    protected function removeFromSentItems(string $from, string $internetMessageId): void
+    {
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            if ($attempt > 0) {
+                sleep(2);
+            }
+
+            try {
+                $sentMessageId = $this->microsoftGraphApiService->findSentMessageId($from, $internetMessageId);
+            } catch (Throwable $exception) {
+                $this->getLogger()->warning('Failed to look up the sent Microsoft Graph message for deletion.', [
+                    'internetMessageId' => $internetMessageId,
+                    'exception' => $exception,
+                ]);
+
+                return;
+            }
+
+            if ($sentMessageId !== null) {
+                $this->deleteMessageQuietly($from, $sentMessageId);
+
+                return;
             }
         }
 
-        $this->microsoftGraphApiService->sendDraftMessage($from, $messageId);
+        $this->getLogger()->warning('Sent Microsoft Graph message did not appear in time; it remains in Sent Items.', [
+            'internetMessageId' => $internetMessageId,
+        ]);
+    }
+
+    protected function deleteMessageQuietly(string $from, string $messageId): void
+    {
+        try {
+            $this->microsoftGraphApiService->permanentlyDeleteMessage($from, $messageId);
+        } catch (Throwable $exception) {
+            $this->getLogger()->warning('Failed to delete Microsoft Graph message.', [
+                'messageId' => $messageId,
+                'exception' => $exception,
+            ]);
+        }
     }
 
     /**
-     * @return list<array{'@odata.type': string, name: string|null, contentType: string, contentBytes: string, contentId: string|null, isInline: bool}>
+     * @return list<array{name: string|null, contentType: string, body: string, contentId: string|null, isInline: bool}>
      */
     protected function prepareAttachments(Email $email): array
     {
@@ -150,17 +212,47 @@ class MicrosoftGraphTransport extends AbstractTransport
             $contentId = is_string($contentId) && filled($contentId) ? $contentId : null;
 
             $attachments[] = [
-                '@odata.type' => '#microsoft.graph.fileAttachment',
                 // Some clients (e.g. Thunderbird) only render inline images whose name has an extension.
                 'name' => $fileName ?? $contentId,
                 'contentType' => implode('/', [$attachment->getMediaType(), $attachment->getMediaSubtype()]),
-                'contentBytes' => base64_encode($attachment->getBody()),
+                'body' => $attachment->getBody(),
                 'contentId' => $contentId ?? $fileName,
                 'isInline' => $headers->getHeaderBody('Content-Disposition') === 'inline',
             ];
         }
 
         return $attachments;
+    }
+
+    /**
+     * @param  array{name: string|null, contentType: string, body: string, contentId: string|null, isInline: bool}  $attachment
+     * @return array{'@odata.type': string, name: string|null, contentType: string, contentBytes: string, contentId: string|null, isInline: bool}
+     */
+    protected function toFileAttachment(array $attachment): array
+    {
+        return [
+            '@odata.type' => '#microsoft.graph.fileAttachment',
+            'name' => $attachment['name'],
+            'contentType' => $attachment['contentType'],
+            'contentBytes' => base64_encode($attachment['body']),
+            'contentId' => $attachment['contentId'],
+            'isInline' => $attachment['isInline'],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $message
+     * @param  list<array{name: string|null, contentType: string, body: string, contentId: string|null, isInline: bool}>  $attachments
+     */
+    protected function estimatedRequestSize(array $message, array $attachments): int
+    {
+        $attachmentBytes = 0;
+        foreach ($attachments as $attachment) {
+            // Base64 inflates to 4 bytes per 3 raw bytes, plus JSON key overhead.
+            $attachmentBytes += (int) ceil(strlen($attachment['body']) / 3) * 4 + 200;
+        }
+
+        return strlen((string) json_encode($message)) + $attachmentBytes;
     }
 
     /**

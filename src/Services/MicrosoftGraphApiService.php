@@ -40,17 +40,46 @@ class MicrosoftGraphApiService
 
     /**
      * @param  array<string, mixed>  $message
+     * @return array{id: string, internetMessageId: string}
      */
-    public function createDraftMessage(string $from, array $message): string
+    public function createDraftMessage(string $from, array $message): array
     {
-        $id = $this->getBaseRequest()
+        $response = $this->getBaseRequest()
             ->post("/users/{$from}/messages", $message)
-            ->throw()
-            ->json('id');
+            ->throw();
+
+        $id = $response->json('id');
+        $internetMessageId = $response->json('internetMessageId');
 
         throw_unless(is_string($id), new InvalidResponse('Expected draft message response to contain key id of type string, got: '.var_export($id, true).'.'));
+        throw_unless(is_string($internetMessageId), new InvalidResponse('Expected draft message response to contain key internetMessageId of type string, got: '.var_export($internetMessageId, true).'.'));
 
-        return $id;
+        return ['id' => $id, 'internetMessageId' => $internetMessageId];
+    }
+
+    /**
+     * Find the id of a sent (non-draft) message by its stable internet message
+     * id. Message ids change when a sent draft moves to Sent Items, so this is
+     * the only reliable way to locate the sent copy.
+     */
+    public function findSentMessageId(string $from, string $internetMessageId): ?string
+    {
+        $messages = $this->getBaseRequest()
+            ->get("/users/{$from}/messages", [
+                '$filter' => "internetMessageId eq '".str_replace("'", "''", $internetMessageId)."'",
+                '$select' => 'id,isDraft',
+                '$top' => '5',
+            ])
+            ->throw()
+            ->json('value');
+
+        foreach (is_array($messages) ? $messages : [] as $message) {
+            if (is_array($message) && ($message['isDraft'] ?? null) === false && is_string($message['id'] ?? null)) {
+                return $message['id'];
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -98,6 +127,17 @@ class MicrosoftGraphApiService
     {
         $this->getBaseRequest()
             ->post("/users/{$from}/messages/{$messageId}/send")
+            ->throw();
+    }
+
+    /**
+     * A regular DELETE only moves the message to Deleted Items; permanentDelete
+     * leaves no copy behind.
+     */
+    public function permanentlyDeleteMessage(string $from, string $messageId): void
+    {
+        $this->getBaseRequest()
+            ->post("/users/{$from}/messages/{$messageId}/permanentDelete")
             ->throw();
     }
 
