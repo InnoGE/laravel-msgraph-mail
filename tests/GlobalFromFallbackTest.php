@@ -21,7 +21,7 @@ it('falls back to the global mail.from address when the mailer defines none', fu
         'name' => 'Global Sender',
     ]);
 
-    Cache::set('microsoft-graph-api-access-token-foo_tenant_id', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id', 'foo_access_token', 3600);
 
     Http::fake();
 

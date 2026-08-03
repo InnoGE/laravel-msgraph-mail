@@ -32,17 +32,11 @@ class LaravelMsGraphMailServiceProvider extends PackageServiceProvider
             $from = array_key_exists('from', $config) ? $config['from'] : config('mail.from');
             throw_if(blank(data_get($from, 'address')), new ConfigurationMissing('from.address'));
 
-            $accessTokenTtl = $config['access_token_ttl'] ?? 3000;
-            if (! is_int($accessTokenTtl)) {
-                throw new ConfigurationInvalid('access_token_ttl', $accessTokenTtl);
-            }
-
             return new MicrosoftGraphTransport(
                 new MicrosoftGraphApiService(
                     tenantId: $this->requireConfigString($config, 'tenant_id'),
                     clientId: $this->requireConfigString($config, 'client_id'),
                     clientSecret: $this->requireConfigString($config, 'client_secret'),
-                    accessTokenTtl: $accessTokenTtl,
                 ),
                 saveToSentItems: filter_var($config['save_to_sent_items'] ?? false, FILTER_VALIDATE_BOOLEAN),
             );

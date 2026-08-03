@@ -10,11 +10,16 @@ use InnoGE\LaravelMsGraphMail\Exceptions\InvalidResponse;
 
 class MicrosoftGraphApiService
 {
+    /**
+     * Seconds subtracted from the token lifetime so a token is refreshed
+     * before it can expire mid-request.
+     */
+    protected const TOKEN_EXPIRATION_BUFFER = 60;
+
     public function __construct(
         protected readonly string $tenantId,
         protected readonly string $clientId,
         protected readonly string $clientSecret,
-        protected readonly int $accessTokenTtl
     ) {}
 
     /**
@@ -35,26 +40,39 @@ class MicrosoftGraphApiService
 
     protected function getAccessToken(): string
     {
-        $accessToken = Cache::remember('microsoft-graph-api-access-token-'.$this->tenantId, $this->accessTokenTtl, function (): string {
-            $response = Http::asForm()
-                ->post("https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token",
-                    [
-                        'grant_type' => 'client_credentials',
-                        'client_id' => $this->clientId,
-                        'client_secret' => $this->clientSecret,
-                        'scope' => 'https://graph.microsoft.com/.default',
-                    ]);
+        $cacheKey = "microsoft-graph-api-access-token-{$this->tenantId}-{$this->clientId}";
 
-            $response->throw();
-
-            $accessToken = $response->json('access_token');
-            throw_unless(is_string($accessToken), new InvalidResponse('Expected response to contain key access_token of type string, got: '.var_export($accessToken, true).'.'));
-
+        $accessToken = Cache::get($cacheKey);
+        if (is_string($accessToken)) {
             return $accessToken;
-        });
+        }
 
-        throw_unless(is_string($accessToken), new InvalidResponse('Expected cached access token to be a string, got: '.var_export($accessToken, true).'.'));
+        $response = Http::asForm()
+            ->post("https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token",
+                [
+                    'grant_type' => 'client_credentials',
+                    'client_id' => $this->clientId,
+                    'client_secret' => $this->clientSecret,
+                    'scope' => 'https://graph.microsoft.com/.default',
+                ]);
+
+        $response->throw();
+
+        $accessToken = $response->json('access_token');
+        throw_unless(is_string($accessToken), new InvalidResponse('Expected response to contain key access_token of type string, got: '.var_export($accessToken, true).'.'));
+
+        Cache::put($cacheKey, $accessToken, $this->tokenCacheTtl($response->json('expires_in')));
 
         return $accessToken;
+    }
+
+    /**
+     * Cache the token for its actual lifetime minus a safety buffer.
+     */
+    protected function tokenCacheTtl(mixed $expiresIn): int
+    {
+        $expiresIn = is_numeric($expiresIn) ? (int) $expiresIn : 3600;
+
+        return max($expiresIn - self::TOKEN_EXPIRATION_BUFFER, self::TOKEN_EXPIRATION_BUFFER);
     }
 }

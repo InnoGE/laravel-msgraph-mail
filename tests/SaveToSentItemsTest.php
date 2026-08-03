@@ -34,7 +34,7 @@ it('honors save_to_sent_items on a mailer registered under a custom key', functi
     ]);
     Config::set('mail.default', 'ms-graph-alias');
 
-    Cache::set('microsoft-graph-api-access-token-foo_tenant_id', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id', 'foo_access_token', 3600);
 
     Http::fake();
 

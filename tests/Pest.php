@@ -25,5 +25,5 @@ function configureMicrosoftGraphMailer(): void
     Config::set('filesystems.default', 'local');
     Config::set('filesystems.disks.local.root', realpath(__DIR__.'/Resources/files'));
 
-    Cache::set('microsoft-graph-api-access-token-foo_tenant_id', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id', 'foo_access_token', 3600);
 }

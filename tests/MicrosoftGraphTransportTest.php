@@ -28,7 +28,7 @@ it('sends html mails with microsoft graph', function () {
     ]);
     Config::set('mail.default', 'microsoft-graph');
 
-    Cache::set('microsoft-graph-api-access-token-foo_tenant_id', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id', 'foo_access_token', 3600);
 
     Http::fake();
 
@@ -114,7 +114,7 @@ it('sends text mails with microsoft graph', function () {
     ]);
     Config::set('mail.default', 'microsoft-graph');
 
-    Cache::set('microsoft-graph-api-access-token-foo_tenant_id', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id', 'foo_access_token', 3600);
 
     Http::fake();
 
@@ -201,7 +201,7 @@ it('creates an oauth access token', function () {
     Config::set('mail.default', 'microsoft-graph');
 
     Http::fake([
-        'https://login.microsoftonline.com/foo_tenant_id/oauth2/v2.0/token' => Http::response(['access_token' => 'foo_access_token']),
+        'https://login.microsoftonline.com/foo_tenant_id/oauth2/v2.0/token' => Http::response(['access_token' => 'foo_access_token', 'expires_in' => 3599]),
         'https://graph.microsoft.com/v1.0*' => Http::response(['value' => []]),
     ]);
 
@@ -219,8 +219,40 @@ it('creates an oauth access token', function () {
         return true;
     });
 
-    expect(Cache::get('microsoft-graph-api-access-token-foo_tenant_id'))
+    expect(Cache::get('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id'))
         ->toBe('foo_access_token');
+});
+
+it('caches the access token for its lifetime minus a safety buffer', function () {
+    Carbon\Carbon::setTestNow('2026-01-01 12:00:00');
+
+    Config::set('mail.mailers.microsoft-graph', [
+        'transport' => 'microsoft-graph',
+        'client_id' => 'foo_client_id',
+        'client_secret' => 'foo_client_secret',
+        'tenant_id' => 'foo_tenant_id',
+        'from' => [
+            'address' => 'taylor@laravel.com',
+            'name' => 'Taylor Otwell',
+        ],
+    ]);
+    Config::set('mail.default', 'microsoft-graph');
+
+    Http::fake([
+        'https://login.microsoftonline.com/foo_tenant_id/oauth2/v2.0/token' => Http::response(['access_token' => 'foo_access_token', 'expires_in' => 3599]),
+        'https://graph.microsoft.com/v1.0*' => Http::response(['value' => []]),
+    ]);
+
+    Mail::to('caleb@livewire.com')->send(new TestMail(false));
+
+    // Token lives for expires_in - 60s: still cached just before, gone after.
+    Carbon\Carbon::setTestNow('2026-01-01 12:58:58');
+    expect(Cache::get('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id'))->toBe('foo_access_token');
+
+    Carbon\Carbon::setTestNow('2026-01-01 12:59:00');
+    expect(Cache::get('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id'))->toBeNull();
+
+    Carbon\Carbon::setTestNow();
 });
 
 it('throws exceptions on invalid access token in response', function () {
@@ -336,20 +368,6 @@ it('throws exceptions when config is invalid', function (array $config, Exceptio
         ],
         new ConfigurationMissing('from.address'),
     ],
-    [
-        [
-            'transport' => 'microsoft-graph',
-            'tenant_id' => 'foo_tenant_id',
-            'client_id' => 'foo_client_id',
-            'client_secret' => 'foo_client_secret',
-            'access_token_ttl' => false,
-            'from' => [
-                'address' => 'taylor@laravel.com',
-                'name' => 'Taylor Otwell',
-            ],
-        ],
-        new ConfigurationInvalid('access_token_ttl', false),
-    ],
 ]);
 
 it('sends html mails with inline images with microsoft graph', function () {
@@ -367,7 +385,7 @@ it('sends html mails with inline images with microsoft graph', function () {
     Config::set('filesystems.default', 'local');
     Config::set('filesystems.disks.local.root', realpath(__DIR__.'/Resources/files'));
 
-    Cache::set('microsoft-graph-api-access-token-foo_tenant_id', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id', 'foo_access_token', 3600);
 
     Http::fake();
 
@@ -448,7 +466,7 @@ test('the configured mail sender can be overwritten', function () {
     ]);
     Config::set('mail.default', 'microsoft-graph');
 
-    Cache::set('microsoft-graph-api-access-token-foo_tenant_id', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id', 'foo_access_token', 3600);
 
     Http::fake();
 
@@ -538,7 +556,7 @@ it('sends custom mail headers with microsoft graph', function () {
     ]);
     Config::set('mail.default', 'microsoft-graph');
 
-    Cache::set('microsoft-graph-api-access-token-foo_tenant_id', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id', 'foo_access_token', 3600);
 
     Http::fake();
 
@@ -630,7 +648,7 @@ it('sends html mails with multiple inline images with unique content ids', funct
     Config::set('filesystems.default', 'local');
     Config::set('filesystems.disks.local.root', realpath(__DIR__.'/Resources/files'));
 
-    Cache::set('microsoft-graph-api-access-token-foo_tenant_id', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id', 'foo_access_token', 3600);
 
     Http::fake();
 
@@ -679,7 +697,7 @@ it('handles mixed inline and regular attachments correctly', function () {
     Config::set('filesystems.default', 'local');
     Config::set('filesystems.disks.local.root', realpath(__DIR__.'/Resources/files'));
 
-    Cache::set('microsoft-graph-api-access-token-foo_tenant_id', 'foo_access_token', 3600);
+    Cache::set('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id', 'foo_access_token', 3600);
 
     Http::fake();
 
