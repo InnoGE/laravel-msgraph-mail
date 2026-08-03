@@ -213,7 +213,7 @@ it('creates an oauth access token', function () {
             expect($request)
                 ->url()->toBe('https://login.microsoftonline.com/foo_tenant_id/oauth2/v2.0/token')
                 ->isForm()->toBeTrue()
-                ->body()->toBe('grant_type=client_credentials&client_id=foo_client_id&client_secret=foo_client_secret&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default');
+                ->body()->toBe('grant_type=client_credentials&client_id=foo_client_id&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default&client_secret=foo_client_secret');
         }
 
         return true;

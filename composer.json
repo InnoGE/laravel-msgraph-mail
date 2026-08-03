@@ -30,6 +30,9 @@
         "pestphp/pest": "^3.0|^4.0",
         "pestphp/pest-plugin-laravel": "^3.0|^4.0"
     },
+    "suggest": {
+        "ext-openssl": "Required for certificate-based authentication (client_certificate)"
+    },
     "autoload": {
         "psr-4": {
             "InnoGE\\LaravelMsGraphMail\\": "src"

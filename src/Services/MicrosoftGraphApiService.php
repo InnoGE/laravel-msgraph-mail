@@ -6,6 +6,7 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use InnoGE\LaravelMsGraphMail\Contracts\ClientAuthentication;
 use InnoGE\LaravelMsGraphMail\Exceptions\InvalidResponse;
 
 class MicrosoftGraphApiService
@@ -19,7 +20,7 @@ class MicrosoftGraphApiService
     public function __construct(
         protected readonly string $tenantId,
         protected readonly string $clientId,
-        protected readonly string $clientSecret,
+        protected readonly ClientAuthentication $authentication,
     ) {}
 
     /**
@@ -47,14 +48,15 @@ class MicrosoftGraphApiService
             return $accessToken;
         }
 
+        $tokenEndpoint = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token";
+
         $response = Http::asForm()
-            ->post("https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token",
-                [
-                    'grant_type' => 'client_credentials',
-                    'client_id' => $this->clientId,
-                    'client_secret' => $this->clientSecret,
-                    'scope' => 'https://graph.microsoft.com/.default',
-                ]);
+            ->post($tokenEndpoint, [
+                'grant_type' => 'client_credentials',
+                'client_id' => $this->clientId,
+                'scope' => 'https://graph.microsoft.com/.default',
+                ...$this->authentication->tokenRequestParameters($this->clientId, $tokenEndpoint),
+            ]);
 
         $response->throw();
 
