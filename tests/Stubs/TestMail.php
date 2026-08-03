@@ -14,18 +14,8 @@ class TestMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    /**
-     * Create a new message instance.
-     *
-     * @return void
-     */
     public function __construct(private readonly bool $isHtml = true, private readonly bool $includeHeaders = false) {}
 
-    /**
-     * Get the message envelope.
-     *
-     * @return \Illuminate\Mail\Mailables\Envelope
-     */
     public function envelope()
     {
         return new Envelope(
@@ -33,11 +23,6 @@ class TestMail extends Mailable
         );
     }
 
-    /**
-     * Get the message content definition.
-     *
-     * @return \Illuminate\Mail\Mailables\Content
-     */
     public function content()
     {
         if (! $this->isHtml) {
@@ -47,9 +32,6 @@ class TestMail extends Mailable
         return new Content(html: 'html-mail');
     }
 
-    /**
-     * Get the attachments for the message.
-     */
     public function attachments(): array
     {
         return [

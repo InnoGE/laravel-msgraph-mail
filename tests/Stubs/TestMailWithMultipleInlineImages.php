@@ -12,9 +12,6 @@ class TestMailWithMultipleInlineImages extends Mailable
 {
     use Queueable, SerializesModels;
 
-    /**
-     * Get the message envelope.
-     */
     public function envelope(): Envelope
     {
         return new Envelope(
@@ -22,9 +19,6 @@ class TestMailWithMultipleInlineImages extends Mailable
         );
     }
 
-    /**
-     * Get the message content definition.
-     */
     public function content(): Content
     {
         return new Content(html: 'html-mail-with-multiple-inline-images');

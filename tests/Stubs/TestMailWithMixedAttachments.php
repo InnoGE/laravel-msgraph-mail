@@ -13,9 +13,6 @@ class TestMailWithMixedAttachments extends Mailable
 {
     use Queueable, SerializesModels;
 
-    /**
-     * Get the message envelope.
-     */
     public function envelope(): Envelope
     {
         return new Envelope(
@@ -23,17 +20,11 @@ class TestMailWithMixedAttachments extends Mailable
         );
     }
 
-    /**
-     * Get the message content definition.
-     */
     public function content(): Content
     {
         return new Content(html: 'html-mail-with-mixed-attachments');
     }
 
-    /**
-     * Get the attachments for the message.
-     */
     public function attachments(): array
     {
         return [
