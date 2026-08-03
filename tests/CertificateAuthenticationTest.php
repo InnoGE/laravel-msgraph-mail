@@ -33,10 +33,14 @@ function configureCertificateMailer(string $certificate, string $privateKey, ?st
 
 function assertValidClientAssertion(): void
 {
-    Http::assertSent(function (Request $request) {
+    $tokenRequestSeen = false;
+
+    Http::assertSent(function (Request $request) use (&$tokenRequestSeen) {
         if (! str_starts_with($request->url(), 'https://login.microsoftonline.com')) {
             return true;
         }
+
+        $tokenRequestSeen = true;
 
         parse_str($request->body(), $body);
 
@@ -71,6 +75,8 @@ function assertValidClientAssertion(): void
 
         return true;
     });
+
+    expect($tokenRequestSeen)->toBeTrue();
 }
 
 it('authenticates with a certificate from file paths', function () {

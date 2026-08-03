@@ -15,20 +15,7 @@ use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMailWithMixedAttachments;
 use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMailWithMultipleInlineImages;
 
 it('sends html mails with microsoft graph', function () {
-    Config::set('mail.mailers.microsoft-graph', [
-        'transport' => 'microsoft-graph',
-        'client_id' => 'foo_client_id',
-        'client_secret' => 'foo_client_secret',
-        'tenant_id' => 'foo_tenant_id',
-        'from' => [
-            'address' => 'taylor@laravel.com',
-            'name' => 'Taylor Otwell',
-        ],
-        'save_to_sent_items' => null,
-    ]);
-    Config::set('mail.default', 'microsoft-graph');
-
-    Cache::set('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id', 'foo_access_token', 3600);
+    configureMicrosoftGraphMailer();
 
     Http::fake();
 
@@ -102,19 +89,7 @@ it('sends html mails with microsoft graph', function () {
 });
 
 it('sends text mails with microsoft graph', function () {
-    Config::set('mail.mailers.microsoft-graph', [
-        'transport' => 'microsoft-graph',
-        'client_id' => 'foo_client_id',
-        'client_secret' => 'foo_client_secret',
-        'tenant_id' => 'foo_tenant_id',
-        'from' => [
-            'address' => 'taylor@laravel.com',
-            'name' => 'Taylor Otwell',
-        ],
-    ]);
-    Config::set('mail.default', 'microsoft-graph');
-
-    Cache::set('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id', 'foo_access_token', 3600);
+    configureMicrosoftGraphMailer();
 
     Http::fake();
 
@@ -370,21 +345,7 @@ it('throws exceptions when config is invalid', function (array $config, Exceptio
 ]);
 
 it('sends html mails with inline images with microsoft graph', function () {
-    Config::set('mail.mailers.microsoft-graph', [
-        'transport' => 'microsoft-graph',
-        'client_id' => 'foo_client_id',
-        'client_secret' => 'foo_client_secret',
-        'tenant_id' => 'foo_tenant_id',
-        'from' => [
-            'address' => 'taylor@laravel.com',
-            'name' => 'Taylor Otwell',
-        ],
-    ]);
-    Config::set('mail.default', 'microsoft-graph');
-    Config::set('filesystems.default', 'local');
-    Config::set('filesystems.disks.local.root', realpath(__DIR__.'/Resources/files'));
-
-    Cache::set('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id', 'foo_access_token', 3600);
+    configureMicrosoftGraphMailer();
 
     Http::fake();
 
@@ -455,19 +416,7 @@ it('sends html mails with inline images with microsoft graph', function () {
 });
 
 test('the configured mail sender can be overwritten', function () {
-    Config::set('mail.mailers.microsoft-graph', [
-        'transport' => 'microsoft-graph',
-        'client_id' => 'foo_client_id',
-        'client_secret' => 'foo_client_secret',
-        'tenant_id' => 'foo_tenant_id',
-        'from' => [
-            'address' => 'taylor@laravel.com',
-            'name' => 'Taylor Otwell',
-        ],
-    ]);
-    Config::set('mail.default', 'microsoft-graph');
-
-    Cache::set('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id', 'foo_access_token', 3600);
+    configureMicrosoftGraphMailer();
 
     Http::fake();
 
@@ -544,20 +493,7 @@ test('the configured mail sender can be overwritten', function () {
 });
 
 it('sends custom mail headers with microsoft graph', function () {
-    Config::set('mail.mailers.microsoft-graph', [
-        'transport' => 'microsoft-graph',
-        'client_id' => 'foo_client_id',
-        'client_secret' => 'foo_client_secret',
-        'tenant_id' => 'foo_tenant_id',
-        'from' => [
-            'address' => 'taylor@laravel.com',
-            'name' => 'Taylor Otwell',
-        ],
-        'save_to_sent_items' => null,
-    ]);
-    Config::set('mail.default', 'microsoft-graph');
-
-    Cache::set('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id', 'foo_access_token', 3600);
+    configureMicrosoftGraphMailer();
 
     Http::fake();
 
@@ -635,21 +571,7 @@ it('sends custom mail headers with microsoft graph', function () {
 });
 
 it('sends html mails with multiple inline images with unique content ids', function () {
-    Config::set('mail.mailers.microsoft-graph', [
-        'transport' => 'microsoft-graph',
-        'client_id' => 'foo_client_id',
-        'client_secret' => 'foo_client_secret',
-        'tenant_id' => 'foo_tenant_id',
-        'from' => [
-            'address' => 'taylor@laravel.com',
-            'name' => 'Taylor Otwell',
-        ],
-    ]);
-    Config::set('mail.default', 'microsoft-graph');
-    Config::set('filesystems.default', 'local');
-    Config::set('filesystems.disks.local.root', realpath(__DIR__.'/Resources/files'));
-
-    Cache::set('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id', 'foo_access_token', 3600);
+    configureMicrosoftGraphMailer();
 
     Http::fake();
 
@@ -679,21 +601,7 @@ it('sends html mails with multiple inline images with unique content ids', funct
 });
 
 it('handles mixed inline and regular attachments correctly', function () {
-    Config::set('mail.mailers.microsoft-graph', [
-        'transport' => 'microsoft-graph',
-        'client_id' => 'foo_client_id',
-        'client_secret' => 'foo_client_secret',
-        'tenant_id' => 'foo_tenant_id',
-        'from' => [
-            'address' => 'taylor@laravel.com',
-            'name' => 'Taylor Otwell',
-        ],
-    ]);
-    Config::set('mail.default', 'microsoft-graph');
-    Config::set('filesystems.default', 'local');
-    Config::set('filesystems.disks.local.root', realpath(__DIR__.'/Resources/files'));
-
-    Cache::set('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id', 'foo_access_token', 3600);
+    configureMicrosoftGraphMailer();
 
     Http::fake();
 
