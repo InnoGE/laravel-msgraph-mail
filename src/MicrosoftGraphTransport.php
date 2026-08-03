@@ -4,6 +4,7 @@ namespace InnoGE\LaravelMsGraphMail;
 
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
+use InnoGE\LaravelMsGraphMail\Exceptions\MissingMailReadWritePermission;
 use InnoGE\LaravelMsGraphMail\Services\MicrosoftGraphApiService;
 use LogicException;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -22,6 +23,18 @@ use Symfony\Component\Mime\MessageConverter;
 class MicrosoftGraphTransport extends AbstractTransport
 {
     public const SAVE_TO_SENT_ITEMS_METADATA = 'save-to-sent-items';
+
+    /**
+     * Estimated request bytes above which sendMail would exceed Graph's ~4 MB
+     * request cap and the message is sent via a draft + upload sessions instead.
+     */
+    protected const SIMPLE_SEND_LIMIT = 3_000_000;
+
+    /**
+     * Raw attachment bytes above which an attachment must be uploaded through
+     * an upload session instead of a direct attachments POST.
+     */
+    protected const LARGE_ATTACHMENT_SIZE = 3_000_000;
 
     public function __construct(
         protected MicrosoftGraphApiService $microsoftGraphApiService,
@@ -75,7 +88,57 @@ class MicrosoftGraphTransport extends AbstractTransport
             $payload['message']['internetMessageHeaders'] = $headers;
         }
 
-        $this->microsoftGraphApiService->sendMail($envelope->getSender()->getAddress(), $payload);
+        $from = $envelope->getSender()->getAddress();
+
+        if (strlen((string) json_encode($payload)) > self::SIMPLE_SEND_LIMIT) {
+            $this->sendViaDraft($from, $payload['message'], $attachments);
+
+            return;
+        }
+
+        $this->microsoftGraphApiService->sendMail($from, $payload);
+    }
+
+    /**
+     * Send a message whose payload exceeds the sendMail request cap: create a
+     * draft, add each attachment separately (chunked upload sessions for large
+     * ones), then send the draft.
+     *
+     * Requires the Mail.ReadWrite application permission. Note that sending a
+     * draft always stores the message in Sent Items — Graph offers no
+     * saveToSentItems control on this path.
+     *
+     * @param  array<string, mixed>  $message
+     * @param  list<array{'@odata.type': string, name: string|null, contentType: string, contentBytes: string, contentId: string|null, isInline: bool}>  $attachments
+     */
+    protected function sendViaDraft(string $from, array $message, array $attachments): void
+    {
+        unset($message['attachments']);
+
+        try {
+            $messageId = $this->microsoftGraphApiService->createDraftMessage($from, $message);
+        } catch (RequestException $exception) {
+            throw $exception->response->status() === 403 ? new MissingMailReadWritePermission : $exception;
+        }
+
+        foreach ($attachments as $attachment) {
+            $contents = (string) base64_decode($attachment['contentBytes'], true);
+
+            if (strlen($contents) > self::LARGE_ATTACHMENT_SIZE) {
+                $this->microsoftGraphApiService->uploadAttachment($from, $messageId, array_filter([
+                    'attachmentType' => 'file',
+                    'name' => $attachment['name'],
+                    'size' => strlen($contents),
+                    'contentType' => $attachment['contentType'],
+                    'isInline' => $attachment['isInline'],
+                    'contentId' => $attachment['contentId'],
+                ], fn (mixed $value): bool => $value !== null), $contents);
+            } else {
+                $this->microsoftGraphApiService->addAttachment($from, $messageId, $attachment);
+            }
+        }
+
+        $this->microsoftGraphApiService->sendDraftMessage($from, $messageId);
     }
 
     /**
