@@ -2,7 +2,7 @@
 
 Step-by-step guide to create the Entra ID (Azure AD) app registration the package needs. The package uses the OAuth2 client-credentials flow, so the app needs the Microsoft Graph `Mail.Send` **application** permission with admin consent. An Entra ID admin role is required for the consent step.
 
-Walk the user through these steps in order and collect the three values for their `.env` along the way.
+Walk the user through these steps in order and collect the values for their `.env` along the way. In step 3, choose ONE credential type: a client secret (simplest) or a certificate (no expiry-outage risk; supported by package 2.x).
 
 ## 1. Create the app registration
 
@@ -21,7 +21,7 @@ On the app's **Overview** page:
 
 Both are GUIDs.
 
-## 3. Create a client secret
+## 3a. Create a client secret (option A)
 
 1. Go to **Certificates & secrets → Client secrets → New client secret**.
 2. Add a description and pick an expiry (max 24 months).
@@ -30,14 +30,24 @@ Both are GUIDs.
 
 Remind the user to note the expiry date somewhere — mail sending will break with `AADSTS7000215` when the secret expires, and a new secret must be created and deployed.
 
+## 3b. Upload a certificate (option B, package 2.x)
+
+1. Generate a certificate + key, e.g.: `openssl req -x509 -newkey rsa:2048 -keyout private-key.pem -out certificate.pem -days 730 -nodes -subj "/CN=laravel-mail"`
+2. Go to **Certificates & secrets → Certificates → Upload certificate** and upload `certificate.pem`; verify the shown thumbprint matches `openssl x509 -in certificate.pem -noout -fingerprint -sha1`.
+3. Configure the mailer's `client_certificate` block with the certificate and private key (PEM content or file paths); keep the private key out of version control and readable only by the app user.
+4. No `client_secret` needed. After swapping credentials, run `php artisan cache:clear` (the old token stays cached otherwise).
+
 ## 4. Grant the Mail.Send application permission
 
 1. Go to **API permissions → Add a permission → Microsoft Graph**.
 2. Choose **Application permissions** (not "Delegated permissions" — the package authenticates as the app, not as a signed-in user).
 3. Search for and check **Mail.Send**, then click **Add permissions**.
-4. Click **Grant admin consent for `<tenant>`** and confirm. The Status column must show a green check ("Granted for ..."). Without this step every send fails with `403 ErrorAccessDenied`.
+4. If the app should send mails with attachments over ~3 MB total, also check **Mail.ReadWrite** (package 2.x sends large mails via drafts + upload sessions).
+5. Click **Grant admin consent for `<tenant>`** and confirm. The Status column must show a green check ("Granted for ..."). Without this step every send fails with `403 ErrorAccessDenied`.
 
 The default "User.Read" delegated permission that Azure adds automatically can be removed; it is not used.
+
+Note: permissions granted later are only picked up after the cached token expires — run `php artisan cache:clear` after any permission change.
 
 ## 5. Configure and verify
 
