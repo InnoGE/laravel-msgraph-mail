@@ -87,17 +87,18 @@ class MicrosoftGraphTransport extends AbstractTransport
         foreach ($email->getAttachments() as $attachment) {
             $headers = $attachment->getPreparedHeaders();
             $fileName = $headers->getHeaderParameter('Content-Disposition', 'filename');
-            // Laravel 12.44.0 bug: Contains a new Content-ID Header with the CID for inline attachments fallback to regular logic using filename for unaffected versions
             $contentIdHeaderBody = $headers->has('Content-ID') ? $headers->get('Content-ID')?->getBody() : null;
             $contentId = is_array($contentIdHeaderBody) ? ($contentIdHeaderBody[0] ?? null) : null;
-            $contentId = is_string($contentId) && filled($contentId) ? $contentId : $fileName;
+            $contentId = is_string($contentId) && filled($contentId) ? $contentId : null;
 
             $attachments[] = [
                 '@odata.type' => '#microsoft.graph.fileAttachment',
-                'name' => $contentId,
+                // Prefer the real filename (with extension) — some clients such as
+                // Thunderbird only render inline images whose name has a suffix.
+                'name' => $fileName ?? $contentId,
                 'contentType' => implode('/', [$attachment->getMediaType(), $attachment->getMediaSubtype()]),
                 'contentBytes' => base64_encode($attachment->getBody()),
-                'contentId' => $contentId,
+                'contentId' => $contentId ?? $fileName,
                 'isInline' => $headers->getHeaderBody('Content-Disposition') === 'inline',
             ];
         }

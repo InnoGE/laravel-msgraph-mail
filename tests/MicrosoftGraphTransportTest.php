@@ -396,7 +396,13 @@ it('sends html mails with inline images with microsoft graph', function () {
 
     Http::assertSent(function (Request $value) {
         // ContentId gets random generated, so get this value first and check for equality later
-        $inlineImageContentId = json_decode($value->body())->message->attachments[0]->contentId;
+        $inlineAttachment = json_decode($value->body())->message->attachments[0];
+        $inlineImageContentId = $inlineAttachment->contentId;
+
+        // Frameworks that expose the original filename (Laravel >= 12.44) keep it as
+        // the attachment name; older ones only know the generated embed name, which
+        // then equals the content id — exactly the pre-2.x behavior.
+        expect($inlineAttachment->name)->toBeIn(['blue.jpg', $inlineImageContentId]);
 
         expect($value)
             ->url()->toBe('https://graph.microsoft.com/v1.0/users/taylor@laravel.com/sendMail')
@@ -438,7 +444,7 @@ it('sends html mails with inline images with microsoft graph', function () {
                     'attachments' => [
                         [
                             '@odata.type' => '#microsoft.graph.fileAttachment',
-                            'name' => $inlineImageContentId,
+                            'name' => $inlineAttachment->name,
                             'contentType' => 'image/jpeg',
                             'contentBytes' => '/9j/4AAQSkZJRgABAQEASABIAAD//gATQ3JlYXRlZCB3aXRoIEdJTVD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wgARCABLAGQDAREAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAWAQEBAQAAAAAAAAAAAAAAAAAABQj/2gAMAwEAAhADEAAAAZ71TDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH/xAAUEAEAAAAAAAAAAAAAAAAAAABw/9oACAEBAAEFAgL/xAAUEQEAAAAAAAAAAAAAAAAAAABw/9oACAEDAQE/AQL/xAAUEQEAAAAAAAAAAAAAAAAAAABw/9oACAECAQE/AQL/xAAUEAEAAAAAAAAAAAAAAAAAAABw/9oACAEBAAY/AgL/xAAUEAEAAAAAAAAAAAAAAAAAAABw/9oACAEBAAE/IQL/2gAMAwEAAgADAAAAEEkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkv/xAAUEQEAAAAAAAAAAAAAAAAAAABw/9oACAEDAQE/EAL/xAAUEQEAAAAAAAAAAAAAAAAAAABw/9oACAECAQE/EAL/xAAUEAEAAAAAAAAAAAAAAAAAAABw/9oACAEBAAE/EAL/2Q==',
                             'contentId' => $inlineImageContentId,
