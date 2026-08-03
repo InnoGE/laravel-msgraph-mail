@@ -44,6 +44,7 @@ class LaravelMsGraphMailServiceProvider extends PackageServiceProvider
                     clientSecret: $this->requireConfigString($config, 'client_secret'),
                     accessTokenTtl: $accessTokenTtl,
                 ),
+                saveToSentItems: filter_var($config['save_to_sent_items'] ?? false, FILTER_VALIDATE_BOOLEAN),
             );
         });
     }

@@ -9,6 +9,8 @@ use LogicException;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Mailer\Envelope;
+use Symfony\Component\Mailer\Header\MetadataHeader;
+use Symfony\Component\Mailer\Header\TagHeader;
 use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\AbstractTransport;
 use Symfony\Component\Mime\Address;
@@ -19,8 +21,11 @@ use Symfony\Component\Mime\MessageConverter;
 
 class MicrosoftGraphTransport extends AbstractTransport
 {
+    public const SAVE_TO_SENT_ITEMS_METADATA = 'save-to-sent-items';
+
     public function __construct(
         protected MicrosoftGraphApiService $microsoftGraphApiService,
+        protected bool $saveToSentItems = false,
         ?EventDispatcherInterface $dispatcher = null,
         ?LoggerInterface $logger = null
     ) {
@@ -63,7 +68,7 @@ class MicrosoftGraphTransport extends AbstractTransport
                 'sender' => $this->transformEmailAddress($envelope->getSender()),
                 'attachments' => $attachments,
             ],
-            'saveToSentItems' => config('mail.mailers.microsoft-graph.save_to_sent_items', false) ?? false,
+            'saveToSentItems' => $this->shouldSaveToSentItems($email),
         ];
 
         if (filled($headers = $this->getInternetMessageHeaders($email))) {
@@ -98,6 +103,21 @@ class MicrosoftGraphTransport extends AbstractTransport
         }
 
         return $attachments;
+    }
+
+    /**
+     * The configured default can be overridden per message via a Symfony
+     * metadata header: new MetadataHeader('save-to-sent-items', 'true').
+     */
+    protected function shouldSaveToSentItems(Email $email): bool
+    {
+        $header = $email->getHeaders()->get('X-Metadata-'.self::SAVE_TO_SENT_ITEMS_METADATA);
+
+        if ($header instanceof MetadataHeader) {
+            return filter_var($header->getValue(), FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return $this->saveToSentItems;
     }
 
     /**
@@ -155,6 +175,11 @@ class MicrosoftGraphTransport extends AbstractTransport
     {
         $headers = [];
         foreach ($email->getHeaders()->all() as $header) {
+            // Metadata and tag headers carry transport instructions and are not part of the message.
+            if ($header instanceof MetadataHeader || $header instanceof TagHeader) {
+                continue;
+            }
+
             if ($header instanceof HeaderInterface && str_starts_with($header->getName(), 'X-')) {
                 $headers[] = ['name' => $header->getName(), 'value' => $header->getBodyAsString()];
             }
