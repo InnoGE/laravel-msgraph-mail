@@ -247,6 +247,7 @@ it('throws exceptions on invalid access token in response', function () {
 it('throws exceptions when config is invalid', function (array $config, Exception $exception) {
     Config::set('mail.mailers.microsoft-graph', $config);
     Config::set('mail.default', 'microsoft-graph');
+    Config::set('mail.from.address', null);
 
     expect(fn () => Mail::to('caleb@livewire.com')->send(new TestMail(false)))
         ->toThrow(get_class($exception), $exception->getMessage());

@@ -26,7 +26,11 @@ class LaravelMsGraphMailServiceProvider extends PackageServiceProvider
     {
         Mail::extend('microsoft-graph', function (array $config): MicrosoftGraphTransport {
             /** @var array<string, mixed> $config */
-            throw_if(blank(data_get($config, 'from.address')), new ConfigurationMissing('from.address'));
+            // Mirror MailManager::setGlobalAddress(): the global `mail.from` is only
+            // applied when the mailer config omits the `from` key entirely — a present
+            // but empty `from` would not fall back and the send would fail later.
+            $from = array_key_exists('from', $config) ? $config['from'] : config('mail.from');
+            throw_if(blank(data_get($from, 'address')), new ConfigurationMissing('from.address'));
 
             $accessTokenTtl = $config['access_token_ttl'] ?? 3000;
             if (! is_int($accessTokenTtl)) {
