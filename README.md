@@ -67,6 +67,10 @@ Now you can switch your default mail driver to the new `microsoft-graph` driver 
 MAIL_MAILER=microsoft-graph
 ```
 
+## AI Agent Support
+
+This package ships with a [Laravel Boost](https://laravel.com/docs/boost) skill (`msgraph-mail`) covering configuration, troubleshooting, and a step-by-step Azure app registration guide. If your project uses Boost, the skill is installed automatically via `php artisan boost:install` or `php artisan boost:update --discover`.
+
 ## Testing
 
 ```bash
