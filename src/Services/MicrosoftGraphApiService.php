@@ -17,16 +17,16 @@ class MicrosoftGraphApiService
      */
     protected const TOKEN_EXPIRATION_BUFFER = 60;
 
+    /**
+     * Maximum bytes uploaded per chunk in an upload session (multiple of 320 KiB).
+     */
+    protected const UPLOAD_CHUNK_SIZE = 3_276_800;
+
     public function __construct(
         protected readonly string $tenantId,
         protected readonly string $clientId,
         protected readonly ClientAuthentication $authentication,
     ) {}
-
-    /**
-     * Maximum bytes uploaded per chunk in an upload session (multiple of 320 KiB).
-     */
-    protected const UPLOAD_CHUNK_SIZE = 3_276_800;
 
     /**
      * @param  array<string, mixed>  $payload
@@ -54,8 +54,6 @@ class MicrosoftGraphApiService
     }
 
     /**
-     * Upload an attachment to a draft message through an upload session.
-     *
      * @param  array<string, mixed>  $attachmentItem
      */
     public function uploadAttachment(string $from, string $messageId, array $attachmentItem, string $contents): void
@@ -87,8 +85,6 @@ class MicrosoftGraphApiService
     }
 
     /**
-     * Add a small attachment directly to a draft message.
-     *
      * @param  array<string, mixed>  $attachment
      */
     public function addAttachment(string $from, string $messageId, array $attachment): void
@@ -140,9 +136,6 @@ class MicrosoftGraphApiService
         return $accessToken;
     }
 
-    /**
-     * Cache the token for its actual lifetime minus a safety buffer.
-     */
     protected function tokenCacheTtl(mixed $expiresIn): int
     {
         $expiresIn = is_numeric($expiresIn) ? (int) $expiresIn : 3600;

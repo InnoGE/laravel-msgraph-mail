@@ -6,13 +6,6 @@ use Illuminate\Support\Facades\Mail;
 use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMailWithEmbeddedData;
 use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMailWithNamedAttachments;
 
-/**
- * Safety-net harness for the exact Graph attachment payload shape.
- *
- * These tests pin the attachment serialization behavior across the supported
- * Laravel/symfony-mime matrix so that any change to attachment handling
- * (naming, content ids, mime types) shows up as an explicit, reviewed diff.
- */
 it('serializes named data and path attachments with explicit mime types', function () {
     configureMicrosoftGraphMailer();
 
@@ -65,8 +58,6 @@ it('serializes inline attachments embedded via embedData', function () {
             ->and($attachment['contentBytes'])->toBe(base64_encode((string) file_get_contents(__DIR__.'/Resources/files/blue.jpg')))
             ->and($attachment['isInline'])->toBeTrue()
             ->and($attachment['contentId'])->not->toBeEmpty()
-            // The name keeps the real filename (with extension) while the
-            // contentId is the generated CID referenced from the HTML body.
             ->and($attachment['name'])->toBe('embedded-image.jpg')
             ->and($json['message']['body']['content'])->toContain('cid:'.$attachment['contentId']);
 

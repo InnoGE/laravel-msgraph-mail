@@ -60,7 +60,6 @@ function assertValidClientAssertion(): void
                 'sub' => 'foo_client_id',
             ]);
 
-        // Verify the RS256 signature against the fixture certificate's public key.
         $publicKey = openssl_pkey_get_public((string) file_get_contents(__DIR__.'/Resources/certs/test-certificate.pem'));
         $verified = openssl_verify(
             "{$header}.{$claims}",

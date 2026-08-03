@@ -7,11 +7,8 @@ use InnoGE\LaravelMsGraphMail\Contracts\ClientAuthentication;
 use InnoGE\LaravelMsGraphMail\Exceptions\ConfigurationInvalid;
 
 /**
- * Authenticates the client with a certificate (Entra ID "certificate" credential)
- * by signing a JWT client assertion with the certificate's private key.
- *
- * The certificate and private key values may be either PEM content or a path
- * to a PEM file.
+ * Entra ID certificate credential: signs a JWT client assertion with the
+ * private key. Certificate and private key accept PEM content or a file path.
  */
 class ClientCertificate implements ClientAuthentication
 {

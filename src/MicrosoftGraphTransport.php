@@ -100,13 +100,8 @@ class MicrosoftGraphTransport extends AbstractTransport
     }
 
     /**
-     * Send a message whose payload exceeds the sendMail request cap: create a
-     * draft, add each attachment separately (chunked upload sessions for large
-     * ones), then send the draft.
-     *
-     * Requires the Mail.ReadWrite application permission. Note that sending a
-     * draft always stores the message in Sent Items — Graph offers no
-     * saveToSentItems control on this path.
+     * Requires the Mail.ReadWrite application permission. A sent draft is
+     * always stored in Sent Items — Graph has no saveToSentItems control here.
      *
      * @param  array<string, mixed>  $message
      * @param  list<array{'@odata.type': string, name: string|null, contentType: string, contentBytes: string, contentId: string|null, isInline: bool}>  $attachments
@@ -156,8 +151,7 @@ class MicrosoftGraphTransport extends AbstractTransport
 
             $attachments[] = [
                 '@odata.type' => '#microsoft.graph.fileAttachment',
-                // Prefer the real filename (with extension) — some clients such as
-                // Thunderbird only render inline images whose name has a suffix.
+                // Some clients (e.g. Thunderbird) only render inline images whose name has an extension.
                 'name' => $fileName ?? $contentId,
                 'contentType' => implode('/', [$attachment->getMediaType(), $attachment->getMediaSubtype()]),
                 'contentBytes' => base64_encode($attachment->getBody()),
@@ -170,8 +164,7 @@ class MicrosoftGraphTransport extends AbstractTransport
     }
 
     /**
-     * The configured default can be overridden per message via a Symfony
-     * metadata header: new MetadataHeader('save-to-sent-items', 'true').
+     * Per-message override via MetadataHeader('save-to-sent-items', …).
      */
     protected function shouldSaveToSentItems(Email $email): bool
     {
@@ -229,9 +222,7 @@ class MicrosoftGraphTransport extends AbstractTransport
     }
 
     /**
-     * Transforms given Symfony Headers
-     * to Microsoft Graph internet message headers
-     * see https://learn.microsoft.com/en-us/graph/api/resources/internetmessageheader?view=graph-rest-1.0
+     * @see https://learn.microsoft.com/en-us/graph/api/resources/internetmessageheader?view=graph-rest-1.0
      *
      * @return list<array{name: string, value: string}>|null
      */

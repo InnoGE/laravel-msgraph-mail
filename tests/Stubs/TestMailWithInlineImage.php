@@ -12,18 +12,8 @@ class TestMailWithInlineImage extends Mailable
 {
     use Queueable, SerializesModels;
 
-    /**
-     * Create a new message instance.
-     *
-     * @return void
-     */
     public function __construct(private readonly bool $isHtml = true) {}
 
-    /**
-     * Get the message envelope.
-     *
-     * @return Envelope
-     */
     public function envelope()
     {
         return new Envelope(
@@ -31,11 +21,6 @@ class TestMailWithInlineImage extends Mailable
         );
     }
 
-    /**
-     * Get the message content definition.
-     *
-     * @return Content
-     */
     public function content()
     {
         if (! $this->isHtml) {

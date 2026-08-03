@@ -399,9 +399,8 @@ it('sends html mails with inline images with microsoft graph', function () {
         $inlineAttachment = json_decode($value->body())->message->attachments[0];
         $inlineImageContentId = $inlineAttachment->contentId;
 
-        // Frameworks that expose the original filename (Laravel >= 12.44) keep it as
-        // the attachment name; older ones only know the generated embed name, which
-        // then equals the content id — exactly the pre-2.x behavior.
+        // Laravel >= 12.44 exposes the original filename as the name; older
+        // versions only have the generated embed name (== content id).
         expect($inlineAttachment->name)->toBeIn(['blue.jpg', $inlineImageContentId]);
 
         expect($value)
@@ -666,22 +665,17 @@ it('sends html mails with multiple inline images with unique content ids', funct
         $attachments = $body->message->attachments;
         $htmlContent = $body->message->body->content;
 
-        // Verify we have exactly 2 inline attachments
         expect($attachments)->toHaveCount(2);
 
-        // Get contentIds from both attachments
         $contentId1 = $attachments[0]->contentId;
         $contentId2 = $attachments[1]->contentId;
 
-        // Verify both are inline
         expect($attachments[0]->isInline)->toBeTrue();
         expect($attachments[1]->isInline)->toBeTrue();
 
-        // Verify each contentId appears in the HTML
         expect($htmlContent)->toContain('cid:'.$contentId1);
         expect($htmlContent)->toContain('cid:'.$contentId2);
 
-        // Verify the two contentIds are different (unique)
         expect($contentId1)->not->toBe($contentId2);
 
         return true;
@@ -715,10 +709,8 @@ it('handles mixed inline and regular attachments correctly', function () {
         $attachments = $body->message->attachments;
         $htmlContent = $body->message->body->content;
 
-        // Verify we have exactly 2 attachments (1 inline image + 1 regular file)
         expect($attachments)->toHaveCount(2);
 
-        // Find inline and regular attachments
         $inlineAttachment = null;
         $regularAttachment = null;
 
@@ -730,16 +722,13 @@ it('handles mixed inline and regular attachments correctly', function () {
             }
         }
 
-        // Verify we found both types
         expect($inlineAttachment)->not->toBeNull();
         expect($regularAttachment)->not->toBeNull();
 
-        // Verify inline attachment properties
         expect($inlineAttachment->isInline)->toBeTrue();
         expect($inlineAttachment->contentType)->toBe('image/jpeg');
         expect($htmlContent)->toContain('cid:'.$inlineAttachment->contentId);
 
-        // Verify regular attachment properties
         expect($regularAttachment->isInline)->toBeFalse();
         expect($regularAttachment->name)->toBe('test-file-1.txt');
         expect($regularAttachment->contentId)->toBe('test-file-1.txt');

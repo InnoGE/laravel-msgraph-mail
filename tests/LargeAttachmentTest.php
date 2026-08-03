@@ -21,10 +21,8 @@ it('sends large mails via a draft with an upload session', function () {
     configureMicrosoftGraphMailer();
     fakeDraftEndpoints();
 
-    // 4 MB attachment: above the sendMail cap and above the direct-attachment limit.
-    $large = str_repeat('L', 4_000_000);
-    // 1 MB attachment: small enough for a direct attachments POST.
-    $small = str_repeat('S', 1_000_000);
+    $large = str_repeat('L', 4_000_000); // > direct-attachment limit
+    $small = str_repeat('S', 1_000_000); // < direct-attachment limit
 
     Mail::to('caleb@livewire.com')->send(new TestMailWithLargeAttachment($large, $small));
 
@@ -37,7 +35,6 @@ it('sends large mails via a draft with an upload session', function () {
 
     $urls = array_map(fn (Request $request) => "{$request->method()} {$request->url()}", $requests);
 
-    // Draft created without attachments, both attachments added separately, draft sent.
     expect($urls)->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages')
         ->and($urls)->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/attachments/createUploadSession')
         ->and($urls)->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/attachments')
