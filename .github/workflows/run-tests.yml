@@ -2,9 +2,9 @@ name: run-tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, 2.x]
   pull_request:
-    branches: [main]
+    branches: [main, 2.x]
 
 jobs:
   test:
@@ -13,8 +13,8 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest]
-        php: [8.4, 8.3, 8.2, 8.1]
-        laravel: ["^13.0", "^12.0", "^11.0", "^10.0", "^9.38"]
+        php: [8.4, 8.3, 8.2]
+        laravel: ["^13.0", "^12.0", "^11.0"]
         stability: [prefer-lowest, prefer-stable]
         include:
           - laravel: "^13.0"
@@ -23,24 +23,12 @@ jobs:
             testbench: 10.*
           - laravel: "^11.0"
             testbench: 9.*
-          - laravel: "^10.0"
-            testbench: 8.*
-          - laravel: "^9.38"
-            testbench: 7.*
         exclude:
-          - laravel: "^11.0"
-            php: 8.1
-          - laravel: "^12.0"
-            php: 8.1
-          - laravel: "^13.0"
-            php: 8.1
           - laravel: "^13.0"
             php: 8.2
           - laravel: "^13.0"
             stability: prefer-lowest
           - laravel: "^11.0"
-            stability: prefer-lowest
-          - laravel: "^10.0"
             stability: prefer-lowest
 
     name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
@@ -63,10 +51,6 @@ jobs:
 
       - name: Remove larastan from dev dependencies
         run: composer remove --dev larastan/larastan
-
-      - name: Upgrade to Pest 4 for Laravel 13
-        if: matrix.laravel == '^13.0'
-        run: composer require 'pestphp/pest:^4.0' 'pestphp/pest-plugin-laravel:^4.0' --dev --no-update
 
       - name: Install dependencies
         run: |

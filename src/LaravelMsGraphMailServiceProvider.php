@@ -25,7 +25,8 @@ class LaravelMsGraphMailServiceProvider extends PackageServiceProvider
     public function boot(): void
     {
         Mail::extend('microsoft-graph', function (array $config): MicrosoftGraphTransport {
-            throw_if(blank($config['from']['address'] ?? []), new ConfigurationMissing('from.address'));
+            /** @var array<string, mixed> $config */
+            throw_if(blank(data_get($config, 'from.address')), new ConfigurationMissing('from.address'));
 
             $accessTokenTtl = $config['access_token_ttl'] ?? 3000;
             if (! is_int($accessTokenTtl)) {

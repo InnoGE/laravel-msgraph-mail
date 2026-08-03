@@ -5,6 +5,7 @@ namespace InnoGE\LaravelMsGraphMail;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use InnoGE\LaravelMsGraphMail\Services\MicrosoftGraphApiService;
+use LogicException;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Mailer\Envelope;
@@ -13,6 +14,7 @@ use Symfony\Component\Mailer\Transport\AbstractTransport;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\Header\HeaderInterface;
+use Symfony\Component\Mime\Message;
 use Symfony\Component\Mime\MessageConverter;
 
 class MicrosoftGraphTransport extends AbstractTransport
@@ -35,19 +37,24 @@ class MicrosoftGraphTransport extends AbstractTransport
      */
     protected function doSend(SentMessage $message): void
     {
-        $email = MessageConverter::toEmail($message->getOriginalMessage());
+        $originalMessage = $message->getOriginalMessage();
+        if (! $originalMessage instanceof Message) {
+            throw new LogicException(sprintf('Expected the original message to be an instance of %s, got %s.', Message::class, get_debug_type($originalMessage)));
+        }
+
+        $email = MessageConverter::toEmail($originalMessage);
         $envelope = $message->getEnvelope();
 
-        $html = $email->getHtmlBody();
+        $html = $this->bodyToString($email->getHtmlBody());
 
-        [$attachments, $html] = $this->prepareAttachments($email, $html);
+        $attachments = $this->prepareAttachments($email);
 
         $payload = [
             'message' => [
                 'subject' => $email->getSubject(),
                 'body' => [
                     'contentType' => $html === null ? 'Text' : 'HTML',
-                    'content' => $html ?: $email->getTextBody(),
+                    'content' => $html ?: $this->bodyToString($email->getTextBody()),
                 ],
                 'toRecipients' => $this->transformEmailAddresses($this->getRecipients($email, $envelope)),
                 'ccRecipients' => $this->transformEmailAddresses(collect($email->getCc())),
@@ -67,17 +74,18 @@ class MicrosoftGraphTransport extends AbstractTransport
     }
 
     /**
-     * @return array<int, array<int<0, max>, array<string, bool|string|null>>|string|null>
+     * @return list<array{'@odata.type': string, name: string|null, contentType: string, contentBytes: string, contentId: string|null, isInline: bool}>
      */
-    protected function prepareAttachments(Email $email, ?string $html): array
+    protected function prepareAttachments(Email $email): array
     {
         $attachments = [];
         foreach ($email->getAttachments() as $attachment) {
             $headers = $attachment->getPreparedHeaders();
             $fileName = $headers->getHeaderParameter('Content-Disposition', 'filename');
             // Laravel 12.44.0 bug: Contains a new Content-ID Header with the CID for inline attachments fallback to regular logic using filename for unaffected versions
-            $contentId = $headers->has('Content-ID') ? $headers->get('Content-ID')?->getBody()[0] ?? null : null;
-            $contentId = filled($contentId) ? $contentId : $fileName;
+            $contentIdHeaderBody = $headers->has('Content-ID') ? $headers->get('Content-ID')?->getBody() : null;
+            $contentId = is_array($contentIdHeaderBody) ? ($contentIdHeaderBody[0] ?? null) : null;
+            $contentId = is_string($contentId) && filled($contentId) ? $contentId : $fileName;
 
             $attachments[] = [
                 '@odata.type' => '#microsoft.graph.fileAttachment',
@@ -89,20 +97,35 @@ class MicrosoftGraphTransport extends AbstractTransport
             ];
         }
 
-        return [$attachments, $html];
+        return $attachments;
+    }
+
+    /**
+     * @param  resource|string|null  $body
+     */
+    protected function bodyToString(mixed $body): ?string
+    {
+        if (is_string($body) || $body === null) {
+            return $body;
+        }
+
+        return stream_get_contents($body) ?: null;
     }
 
     /**
      * @param  Collection<array-key, Address>  $recipients
-     * @return array<array-key, array<string, array<string, string>>>
+     * @return array<array-key, array{emailAddress: array{address: string}}>
      */
     protected function transformEmailAddresses(Collection $recipients): array
     {
         return $recipients
             ->map(fn (Address $recipient) => $this->transformEmailAddress($recipient))
-            ->toArray();
+            ->all();
     }
 
+    /**
+     * @return array{emailAddress: array{address: string}}
+     */
     protected function transformEmailAddress(Address $address): array
     {
         return [
@@ -125,13 +148,18 @@ class MicrosoftGraphTransport extends AbstractTransport
      * Transforms given Symfony Headers
      * to Microsoft Graph internet message headers
      * see https://learn.microsoft.com/en-us/graph/api/resources/internetmessageheader?view=graph-rest-1.0
+     *
+     * @return list<array{name: string, value: string}>|null
      */
     protected function getInternetMessageHeaders(Email $email): ?array
     {
-        return collect($email->getHeaders()->all())
-            ->filter(fn (HeaderInterface $header) => str_starts_with($header->getName(), 'X-'))
-            ->map(fn (HeaderInterface $header) => ['name' => $header->getName(), 'value' => $header->getBodyAsString()])
-            ->values()
-            ->all() ?: null;
+        $headers = [];
+        foreach ($email->getHeaders()->all() as $header) {
+            if ($header instanceof HeaderInterface && str_starts_with($header->getName(), 'X-')) {
+                $headers[] = ['name' => $header->getName(), 'value' => $header->getBodyAsString()];
+            }
+        }
+
+        return $headers ?: null;
     }
 }

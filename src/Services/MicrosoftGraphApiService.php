@@ -17,6 +17,9 @@ class MicrosoftGraphApiService
         protected readonly int $accessTokenTtl
     ) {}
 
+    /**
+     * @param  array<string, mixed>  $payload
+     */
     public function sendMail(string $from, array $payload): Response
     {
         return $this->getBaseRequest()
@@ -32,7 +35,7 @@ class MicrosoftGraphApiService
 
     protected function getAccessToken(): string
     {
-        return Cache::remember('microsoft-graph-api-access-token-'.$this->tenantId, $this->accessTokenTtl, function (): string {
+        $accessToken = Cache::remember('microsoft-graph-api-access-token-'.$this->tenantId, $this->accessTokenTtl, function (): string {
             $response = Http::asForm()
                 ->post("https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token",
                     [
@@ -49,5 +52,9 @@ class MicrosoftGraphApiService
 
             return $accessToken;
         });
+
+        throw_unless(is_string($accessToken), new InvalidResponse('Expected cached access token to be a string, got: '.var_export($accessToken, true).'.'));
+
+        return $accessToken;
     }
 }
