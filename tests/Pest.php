@@ -6,9 +6,6 @@ use InnoGE\LaravelMsGraphMail\Tests\TestCase;
 
 uses(TestCase::class)->in(__DIR__);
 
-/**
- * Configure a working microsoft-graph mailer with a pre-cached access token.
- */
 function configureMicrosoftGraphMailer(): void
 {
     Config::set('mail.mailers.microsoft-graph', [

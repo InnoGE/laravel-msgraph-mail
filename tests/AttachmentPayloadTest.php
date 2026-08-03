@@ -16,8 +16,6 @@ it('serializes named data and path attachments with explicit mime types', functi
     Http::assertSent(function (Request $value) {
         $attachments = json_decode($value->body(), true)['message']['attachments'];
 
-        // Laravel serializes path attachments before data attachments,
-        // regardless of their order in the attachments() array.
         expect($attachments)->toBe([
             [
                 '@odata.type' => '#microsoft.graph.fileAttachment',

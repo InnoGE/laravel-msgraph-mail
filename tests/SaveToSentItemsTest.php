@@ -19,8 +19,6 @@ function assertSaveToSentItems(bool $expected): void
 }
 
 it('honors save_to_sent_items on a mailer registered under a custom key', function () {
-    // Regression: the flag used to be read from the hardcoded
-    // mail.mailers.microsoft-graph key, silently breaking aliased mailers.
     Config::set('mail.mailers.ms-graph-alias', [
         'transport' => 'microsoft-graph',
         'client_id' => 'foo_client_id',

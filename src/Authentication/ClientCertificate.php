@@ -6,10 +6,6 @@ use Illuminate\Support\Str;
 use InnoGE\LaravelMsGraphMail\Contracts\ClientAuthentication;
 use InnoGE\LaravelMsGraphMail\Exceptions\ConfigurationInvalid;
 
-/**
- * Entra ID certificate credential: signs a JWT client assertion with the
- * private key. Certificate and private key accept PEM content or a file path.
- */
 class ClientCertificate implements ClientAuthentication
 {
     protected const ASSERTION_TYPE = 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer';
@@ -68,10 +64,6 @@ class ClientCertificate implements ClientAuthentication
         return $signingInput.'.'.$this->base64UrlEncode($signature);
     }
 
-    /**
-     * Base64url-encoded SHA-1 thumbprint of the DER certificate, as expected
-     * by Entra ID in the JWT x5t header.
-     */
     protected function certificateThumbprint(): string
     {
         $pem = $this->loadPem($this->certificate, 'client_certificate.certificate');
@@ -89,9 +81,6 @@ class ClientCertificate implements ClientAuthentication
         return $this->base64UrlEncode(sha1($der, true));
     }
 
-    /**
-     * Accepts PEM content directly or a path to a PEM file.
-     */
     protected function loadPem(string $value, string $configKey): string
     {
         if (str_starts_with(trim($value), '-----BEGIN')) {

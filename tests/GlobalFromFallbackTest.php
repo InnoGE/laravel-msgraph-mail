@@ -42,8 +42,6 @@ it('falls back to the global mail.from address when the mailer defines none', fu
 });
 
 it('rejects a present but empty mailer-level from even when a global from exists', function () {
-    // mail.from only applies when the `from` key is omitted entirely;
-    // present-but-empty must fail fast here.
     Config::set('mail.mailers.microsoft-graph', [
         'transport' => 'microsoft-graph',
         'client_id' => 'foo_client_id',

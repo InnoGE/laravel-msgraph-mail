@@ -11,15 +11,8 @@ use InnoGE\LaravelMsGraphMail\Exceptions\InvalidResponse;
 
 class MicrosoftGraphApiService
 {
-    /**
-     * Seconds subtracted from the token lifetime so a token is refreshed
-     * before it can expire mid-request.
-     */
     protected const TOKEN_EXPIRATION_BUFFER = 60;
 
-    /**
-     * Maximum bytes uploaded per chunk in an upload session (multiple of 320 KiB).
-     */
     protected const UPLOAD_CHUNK_SIZE = 3_276_800;
 
     public function __construct(
@@ -57,11 +50,6 @@ class MicrosoftGraphApiService
         return ['id' => $id, 'internetMessageId' => $internetMessageId];
     }
 
-    /**
-     * Find the id of a sent (non-draft) message by its stable internet message
-     * id. Message ids change when a sent draft moves to Sent Items, so this is
-     * the only reliable way to locate the sent copy.
-     */
     public function findSentMessageId(string $from, string $internetMessageId): ?string
     {
         $messages = $this->getBaseRequest()
@@ -102,8 +90,6 @@ class MicrosoftGraphApiService
             $rangeStart = $index * self::UPLOAD_CHUNK_SIZE;
             $rangeEnd = $rangeStart + strlen($chunk) - 1;
 
-            // The upload URL is pre-authenticated; Graph rejects requests
-            // carrying an Authorization header here.
             Http::withHeaders([
                 'Content-Range' => "bytes {$rangeStart}-{$rangeEnd}/{$totalSize}",
             ])
@@ -130,10 +116,6 @@ class MicrosoftGraphApiService
             ->throw();
     }
 
-    /**
-     * A regular DELETE only moves the message to Deleted Items; permanentDelete
-     * leaves no copy behind.
-     */
     public function permanentlyDeleteMessage(string $from, string $messageId): void
     {
         $this->getBaseRequest()

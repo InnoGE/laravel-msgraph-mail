@@ -14,7 +14,6 @@ function fakeDraftEndpoints(): void
         'https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/attachments' => Http::response(['id' => 'attachment-id'], 201),
         'https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/send' => Http::response(null, 202),
         'https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/sent-id/permanentDelete' => Http::response(null, 204),
-        // The sent-copy lookup by internetMessageId (query string present).
         'https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages?*' => Http::response(['value' => [
             ['id' => 'draft-id', 'isDraft' => true],
             ['id' => 'sent-id', 'isDraft' => false],
@@ -35,8 +34,8 @@ it('sends large mails via a draft with an upload session', function () {
     configureMicrosoftGraphMailer();
     fakeDraftEndpoints();
 
-    $large = str_repeat('L', 4_000_000); // > direct-attachment limit
-    $small = str_repeat('S', 1_000_000); // < direct-attachment limit
+    $large = str_repeat('L', 4_000_000);
+    $small = str_repeat('S', 1_000_000);
 
     Mail::to('caleb@livewire.com')->send(new TestMailWithLargeAttachment($large, $small));
 
@@ -47,11 +46,9 @@ it('sends large mails via a draft with an upload session', function () {
         ->and($urls)->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/attachments/createUploadSession')
         ->and($urls)->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/attachments')
         ->and($urls)->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/send')
-        // save_to_sent_items defaults to false: the sent message is removed from Sent Items.
         ->and($urls)->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/sent-id/permanentDelete')
         ->and($urls)->not->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/sendMail');
 
-    // The delete must happen after the send.
     expect(array_search('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/sent-id/permanentDelete', $urls))
         ->toBeGreaterThan(array_search('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/send', $urls));
 
@@ -76,7 +73,6 @@ it('sends large mails via a draft with an upload session', function () {
         }
     }
 
-    // Chunked upload: 4 MB in 3.2 MB chunks => 2 PUTs with contiguous ranges.
     $uploads = array_values(array_filter($requests, fn (Request $request) => str_starts_with($request->url(), 'https://upload.example.com')));
     expect($uploads)->toHaveCount(2)
         ->and($uploads[0]->header('Content-Range')[0])->toBe('bytes 0-3276799/4000000')
@@ -120,7 +116,6 @@ it('deletes the orphaned draft when an attachment upload fails', function () {
     expect(fn () => Mail::to('caleb@livewire.com')->send(new TestMailWithLargeAttachment(str_repeat('L', 4_000_000))))
         ->toThrow(RequestException::class);
 
-    // The orphaned draft is deleted directly by its id.
     expect(sentRequestUrls())->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/permanentDelete')
         ->and(sentRequestUrls())->not->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/send');
 });
@@ -137,7 +132,6 @@ it('explains the missing Mail.ReadWrite permission on 403 draft failures', funct
         $this->fail('Expected MissingMailReadWritePermission to be thrown.');
     } catch (MissingMailReadWritePermission $exception) {
         expect($exception->getMessage())->toContain('Mail.ReadWrite')
-            // The original Graph error stays reachable for diagnosis.
             ->and($exception->getPrevious())->toBeInstanceOf(RequestException::class);
     }
 });

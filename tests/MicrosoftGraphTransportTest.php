@@ -245,7 +245,6 @@ it('caches the access token for its lifetime minus a safety buffer', function ()
 
     Mail::to('caleb@livewire.com')->send(new TestMail(false));
 
-    // Token lives for expires_in - 60s: still cached just before, gone after.
     Carbon\Carbon::setTestNow('2026-01-01 12:58:58');
     expect(Cache::get('microsoft-graph-api-access-token-foo_tenant_id-foo_client_id'))->toBe('foo_access_token');
 
@@ -395,12 +394,9 @@ it('sends html mails with inline images with microsoft graph', function () {
         ->send(new TestMailWithInlineImage);
 
     Http::assertSent(function (Request $value) {
-        // ContentId gets random generated, so get this value first and check for equality later
         $inlineAttachment = json_decode($value->body())->message->attachments[0];
         $inlineImageContentId = $inlineAttachment->contentId;
 
-        // Laravel >= 12.44 exposes the original filename as the name; older
-        // versions only have the generated embed name (== content id).
         expect($inlineAttachment->name)->toBeIn(['blue.jpg', $inlineImageContentId]);
 
         expect($value)

@@ -25,16 +25,8 @@ class MicrosoftGraphTransport extends AbstractTransport
 {
     public const SAVE_TO_SENT_ITEMS_METADATA = 'save-to-sent-items';
 
-    /**
-     * Estimated request bytes above which sendMail would exceed Graph's ~4 MB
-     * request cap and the message is sent via a draft + upload sessions instead.
-     */
     protected const SIMPLE_SEND_LIMIT = 3_000_000;
 
-    /**
-     * Raw attachment bytes above which an attachment must be uploaded through
-     * an upload session instead of a direct attachments POST.
-     */
     protected const LARGE_ATTACHMENT_SIZE = 3_000_000;
 
     public function __construct(
@@ -107,11 +99,6 @@ class MicrosoftGraphTransport extends AbstractTransport
     }
 
     /**
-     * Requires the Mail.ReadWrite application permission. Graph stores a sent
-     * draft in Sent Items unconditionally, so when saveToSentItems is disabled
-     * the sent message is deleted afterwards; a failed send deletes the
-     * orphaned draft.
-     *
      * @param  array<string, mixed>  $message
      * @param  list<array{name: string|null, contentType: string, body: string, contentId: string|null, isInline: bool}>  $attachments
      */
@@ -151,11 +138,6 @@ class MicrosoftGraphTransport extends AbstractTransport
         }
     }
 
-    /**
-     * The message id changes when the sent draft moves to Sent Items, so the
-     * sent copy is located by its stable internet message id. Submission is
-     * asynchronous — poll briefly and give up quietly.
-     */
     protected function removeFromSentItems(string $from, string $internetMessageId): void
     {
         for ($attempt = 0; $attempt < 5; $attempt++) {
@@ -212,7 +194,6 @@ class MicrosoftGraphTransport extends AbstractTransport
             $contentId = is_string($contentId) && filled($contentId) ? $contentId : null;
 
             $attachments[] = [
-                // Some clients (e.g. Thunderbird) only render inline images whose name has an extension.
                 'name' => $fileName ?? $contentId,
                 'contentType' => implode('/', [$attachment->getMediaType(), $attachment->getMediaSubtype()]),
                 'body' => $attachment->getBody(),
@@ -248,16 +229,12 @@ class MicrosoftGraphTransport extends AbstractTransport
     {
         $attachmentBytes = 0;
         foreach ($attachments as $attachment) {
-            // Base64 inflates to 4 bytes per 3 raw bytes, plus JSON key overhead.
             $attachmentBytes += (int) ceil(strlen($attachment['body']) / 3) * 4 + 200;
         }
 
         return strlen((string) json_encode($message)) + $attachmentBytes;
     }
 
-    /**
-     * Per-message override via MetadataHeader('save-to-sent-items', …).
-     */
     protected function shouldSaveToSentItems(Email $email): bool
     {
         $header = $email->getHeaders()->get('X-Metadata-'.self::SAVE_TO_SENT_ITEMS_METADATA);
@@ -314,15 +291,12 @@ class MicrosoftGraphTransport extends AbstractTransport
     }
 
     /**
-     * @see https://learn.microsoft.com/en-us/graph/api/resources/internetmessageheader?view=graph-rest-1.0
-     *
      * @return list<array{name: string, value: string}>|null
      */
     protected function getInternetMessageHeaders(Email $email): ?array
     {
         $headers = [];
         foreach ($email->getHeaders()->all() as $header) {
-            // Metadata and tag headers carry transport instructions and are not part of the message.
             if ($header instanceof MetadataHeader || $header instanceof TagHeader) {
                 continue;
             }
