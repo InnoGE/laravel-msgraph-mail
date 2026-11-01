@@ -158,7 +158,7 @@ it('uses the client secret when the certificate env values are empty', function 
         'tenant_id' => 'foo_tenant_id',
         'client_secret' => 'foo_client_secret',
         'client_certificate' => ['certificate' => null, 'private_key' => null, 'passphrase' => null],
-        'from' => ['address' => 'taylor@laravel.com'],
+        'from' => ['address' => 'taylor@laravel.com', 'name' => 'Taylor Otwell'],
     ]);
     Config::set('mail.default', 'microsoft-graph');
     Http::fake([
