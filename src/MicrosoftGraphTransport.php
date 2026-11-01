@@ -4,8 +4,8 @@ namespace InnoGE\LaravelMsGraphMail;
 
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
-use InnoGE\LaravelMsGraphMail\Exceptions\MissingMailReadWritePermission;
-use InnoGE\LaravelMsGraphMail\Services\MicrosoftGraphApiService;
+use Illuminate\Support\Str;
+use InnoGE\LaravelMsGraphMail\Exceptions\MissingMailReadWritePermissionException;
 use LogicException;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
@@ -30,7 +30,7 @@ class MicrosoftGraphTransport extends AbstractTransport
     protected const LARGE_ATTACHMENT_SIZE = 3_000_000;
 
     public function __construct(
-        protected MicrosoftGraphApiService $microsoftGraphApiService,
+        protected MailApi $mailApi,
         protected bool $saveToSentItems = false,
         ?EventDispatcherInterface $dispatcher = null,
         ?LoggerInterface $logger = null
@@ -92,7 +92,7 @@ class MicrosoftGraphTransport extends AbstractTransport
             $message['internetMessageHeaders'] = $headers;
         }
 
-        $this->microsoftGraphApiService->sendMail($from, [
+        $this->mailApi->sendMail($from, [
             'message' => $message,
             'saveToSentItems' => $saveToSentItems,
         ]);
@@ -105,15 +105,15 @@ class MicrosoftGraphTransport extends AbstractTransport
     protected function sendViaDraft(string $from, array $message, array $attachments, bool $saveToSentItems): void
     {
         try {
-            ['id' => $messageId, 'internetMessageId' => $internetMessageId] = $this->microsoftGraphApiService->createDraftMessage($from, $message);
+            ['id' => $messageId, 'internetMessageId' => $internetMessageId] = $this->mailApi->createDraftMessage($from, $message);
         } catch (RequestException $exception) {
-            throw $exception->response->status() === 403 ? new MissingMailReadWritePermission($exception) : $exception;
+            throw $exception->response->status() === 403 ? new MissingMailReadWritePermissionException($exception) : $exception;
         }
 
         try {
             foreach ($attachments as $attachment) {
                 if (strlen($attachment['body']) > self::LARGE_ATTACHMENT_SIZE) {
-                    $this->microsoftGraphApiService->uploadAttachment($from, $messageId, array_filter([
+                    $this->mailApi->uploadAttachment($from, $messageId, array_filter([
                         'attachmentType' => 'file',
                         'name' => $attachment['name'],
                         'size' => strlen($attachment['body']),
@@ -122,11 +122,11 @@ class MicrosoftGraphTransport extends AbstractTransport
                         'contentId' => $attachment['contentId'],
                     ], fn (mixed $value): bool => $value !== null), $attachment['body']);
                 } else {
-                    $this->microsoftGraphApiService->addAttachment($from, $messageId, $this->toFileAttachment($attachment));
+                    $this->mailApi->addAttachment($from, $messageId, $this->toFileAttachment($attachment));
                 }
             }
 
-            $this->microsoftGraphApiService->sendDraftMessage($from, $messageId);
+            $this->mailApi->sendDraftMessage($from, $messageId);
         } catch (Throwable $exception) {
             $this->deleteMessageQuietly($from, $messageId);
 
@@ -146,7 +146,7 @@ class MicrosoftGraphTransport extends AbstractTransport
             }
 
             try {
-                $sentMessageId = $this->microsoftGraphApiService->findSentMessageId($from, $internetMessageId);
+                $sentMessageId = $this->mailApi->findSentMessageId($from, $internetMessageId);
             } catch (Throwable $exception) {
                 $this->getLogger()->warning('Failed to look up the sent Microsoft Graph message for deletion.', [
                     'internetMessageId' => $internetMessageId,
@@ -171,7 +171,7 @@ class MicrosoftGraphTransport extends AbstractTransport
     protected function deleteMessageQuietly(string $from, string $messageId): void
     {
         try {
-            $this->microsoftGraphApiService->permanentlyDeleteMessage($from, $messageId);
+            $this->mailApi->permanentlyDeleteMessage($from, $messageId);
         } catch (Throwable $exception) {
             $this->getLogger()->warning('Failed to delete Microsoft Graph message.', [
                 'messageId' => $messageId,
@@ -301,7 +301,7 @@ class MicrosoftGraphTransport extends AbstractTransport
                 continue;
             }
 
-            if ($header instanceof HeaderInterface && str_starts_with($header->getName(), 'X-')) {
+            if ($header instanceof HeaderInterface && Str::startsWith($header->getName(), 'X-')) {
                 $headers[] = ['name' => $header->getName(), 'value' => $header->getBodyAsString()];
             }
         }

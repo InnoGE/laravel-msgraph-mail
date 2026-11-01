@@ -1,6 +1,6 @@
 <?php
 
-namespace InnoGE\LaravelMsGraphMail\Contracts;
+namespace InnoGE\LaravelMsGraphMail\Graph;
 
 interface ClientAuthentication
 {

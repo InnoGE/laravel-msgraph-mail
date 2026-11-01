@@ -4,7 +4,8 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
-use InnoGE\LaravelMsGraphMail\Exceptions\MissingMailReadWritePermission;
+use Illuminate\Support\Str;
+use InnoGE\LaravelMsGraphMail\Exceptions\MissingMailReadWritePermissionException;
 use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMailWithLargeAttachment;
 
 function fakeDraftEndpoints(): void
@@ -34,8 +35,8 @@ it('sends large mails via a draft with an upload session', function () {
     configureMicrosoftGraphMailer();
     fakeDraftEndpoints();
 
-    $large = str_repeat('L', 4_000_000);
-    $small = str_repeat('S', 1_000_000);
+    $large = Str::repeat('L', 4_000_000);
+    $small = Str::repeat('S', 1_000_000);
 
     Mail::to('caleb@livewire.com')->send(new TestMailWithLargeAttachment($large, $small));
 
@@ -53,27 +54,27 @@ it('sends large mails via a draft with an upload session', function () {
         ->toBeGreaterThan(array_search('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/send', $urls));
 
     foreach ($requests as $request) {
-        if (str_ends_with($request->url(), '/messages') && $request->method() === 'POST') {
+        if (Str::endsWith($request->url(), '/messages') && $request->method() === 'POST') {
             $draft = json_decode($request->body(), true);
             expect($draft)->not->toHaveKey('attachments')
                 ->and($draft['subject'])->toBe('Dev Test');
         }
 
-        if (str_ends_with($request->url(), '/createUploadSession')) {
+        if (Str::endsWith($request->url(), '/createUploadSession')) {
             $item = json_decode($request->body(), true)['AttachmentItem'];
             expect($item['attachmentType'])->toBe('file')
                 ->and($item['name'])->toBe('large-file.bin')
                 ->and($item['size'])->toBe(4_000_000);
         }
 
-        if (str_ends_with($request->url(), '/draft-id/attachments') && $request->method() === 'POST') {
+        if (Str::endsWith($request->url(), '/draft-id/attachments') && $request->method() === 'POST') {
             $attachment = json_decode($request->body(), true);
             expect($attachment['name'])->toBe('small-file.bin')
-                ->and($attachment['contentBytes'])->toBe(base64_encode(str_repeat('S', 1_000_000)));
+                ->and($attachment['contentBytes'])->toBe(base64_encode(Str::repeat('S', 1_000_000)));
         }
     }
 
-    $uploads = array_values(array_filter($requests, fn (Request $request) => str_starts_with($request->url(), 'https://upload.example.com')));
+    $uploads = array_values(array_filter($requests, fn (Request $request) => Str::startsWith($request->url(), 'https://upload.example.com')));
     expect($uploads)->toHaveCount(2)
         ->and($uploads[0]->header('Content-Range')[0])->toBe('bytes 0-3276799/4000000')
         ->and($uploads[1]->header('Content-Range')[0])->toBe('bytes 3276800-3999999/4000000')
@@ -87,8 +88,8 @@ it('keeps using sendMail for small mails', function () {
 
     Mail::to('caleb@livewire.com')->send(new TestMailWithLargeAttachment(attachment: 'tiny', smallAttachment: 'tiny-too'));
 
-    Http::assertSent(fn (Request $request) => str_ends_with($request->url(), '/sendMail'));
-    Http::assertNotSent(fn (Request $request) => str_ends_with($request->url(), '/messages'));
+    Http::assertSent(fn (Request $request) => Str::endsWith($request->url(), '/sendMail'));
+    Http::assertNotSent(fn (Request $request) => Str::endsWith($request->url(), '/messages'));
 });
 
 it('keeps the sent message in Sent Items when save_to_sent_items is enabled', function () {
@@ -96,12 +97,12 @@ it('keeps the sent message in Sent Items when save_to_sent_items is enabled', fu
     Config::set('mail.mailers.microsoft-graph.save_to_sent_items', true);
     fakeDraftEndpoints();
 
-    Mail::to('caleb@livewire.com')->send(new TestMailWithLargeAttachment(str_repeat('L', 4_000_000)));
+    Mail::to('caleb@livewire.com')->send(new TestMailWithLargeAttachment(Str::repeat('L', 4_000_000)));
 
     $urls = sentRequestUrls();
 
     expect($urls)->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/send')
-        ->and(collect($urls)->contains(fn (string $url) => str_contains($url, 'permanentDelete')))->toBeFalse();
+        ->and(collect($urls)->contains(fn (string $url) => Str::contains($url, 'permanentDelete')))->toBeFalse();
 });
 
 it('deletes the orphaned draft when an attachment upload fails', function () {
@@ -113,7 +114,7 @@ it('deletes the orphaned draft when an attachment upload fails', function () {
         'https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages' => Http::response(['id' => 'draft-id', 'internetMessageId' => '<message-id@innoge.de>'], 201),
     ]);
 
-    expect(fn () => Mail::to('caleb@livewire.com')->send(new TestMailWithLargeAttachment(str_repeat('L', 4_000_000))))
+    expect(fn () => Mail::to('caleb@livewire.com')->send(new TestMailWithLargeAttachment(Str::repeat('L', 4_000_000))))
         ->toThrow(RequestException::class);
 
     expect(sentRequestUrls())->toContain('POST https://graph.microsoft.com/v1.0/users/taylor@laravel.com/messages/draft-id/permanentDelete')
@@ -128,9 +129,9 @@ it('explains the missing Mail.ReadWrite permission on 403 draft failures', funct
     ]);
 
     try {
-        Mail::to('caleb@livewire.com')->send(new TestMailWithLargeAttachment(str_repeat('L', 4_000_000)));
-        $this->fail('Expected MissingMailReadWritePermission to be thrown.');
-    } catch (MissingMailReadWritePermission $exception) {
+        Mail::to('caleb@livewire.com')->send(new TestMailWithLargeAttachment(Str::repeat('L', 4_000_000)));
+        $this->fail('Expected MissingMailReadWritePermissionException to be thrown.');
+    } catch (MissingMailReadWritePermissionException $exception) {
         expect($exception->getMessage())->toContain('Mail.ReadWrite')
             ->and($exception->getPrevious())->toBeInstanceOf(RequestException::class);
     }

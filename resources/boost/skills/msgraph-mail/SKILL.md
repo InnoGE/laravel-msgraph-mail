@@ -10,7 +10,7 @@ metadata:
 
 ## When to use this skill
 
-Use this skill when working with the `innoge/laravel-msgraph-mail` package (2.x):
+Use this skill when working with the `innoge/laravel-msgraph-mail` package (3.x):
 
 - Configuring Laravel to send mail through Microsoft 365 / Microsoft Graph (replacing deprecated Office 365 SMTP).
 - Creating or fixing the required Azure app registration, including certificate authentication.
@@ -63,7 +63,7 @@ Read `references/azure-app-registration.md` when the user needs to create the ap
 
 - Sending is a `POST https://graph.microsoft.com/v1.0/users/{from-address}/sendMail`. Overriding the sender per mailable with `->from('other@tenant.com')` changes the URL target — that address must also be a real mailbox the app may send as.
 - Mails work with standard `Mail::`, Mailables, and Notifications; no package-specific API.
-- **Large mails** (total payload over ~3 MB): automatically sent via a draft message + chunked attachment upload sessions. Requires the `Mail.ReadWrite` application permission — otherwise a `MissingMailReadWritePermission` exception is thrown. `save_to_sent_items` is honored: when disabled, the sent message is deleted from Sent Items afterwards; failed sends clean up their draft.
+- **Large mails** (total payload over ~3 MB): automatically sent via a draft message + chunked attachment upload sessions. Requires the `Mail.ReadWrite` application permission — otherwise a `MissingMailReadWritePermissionException` exception is thrown. `save_to_sent_items` is honored: when disabled, the sent message is deleted from Sent Items afterwards; failed sends clean up their draft.
 - **`save_to_sent_items`** is read from the mailer's own config entry (works with mailers under any key). Per-mailable override: `$mailable->withSymfonyMessage(fn ($m) => $m->getHeaders()->add(new \Symfony\Component\Mailer\Header\MetadataHeader('save-to-sent-items', 'true')))`.
 - The OAuth token is cached per tenant + client for its `expires_in` lifetime minus 60s. **Tokens do not pick up credential or permission changes until refreshed** — run `php artisan cache:clear` after rotating secrets/certificates or granting new Graph permissions.
 - Attachment names use the real filename with extension where the framework exposes one; inline-image content ids are separate and stable.
@@ -80,7 +80,7 @@ Read `references/azure-app-registration.md` when the user needs to create the ap
 | `AADSTS90002: Tenant ... not found` | Wrong `tenant_id` | Use the Directory (tenant) ID GUID |
 | `AADSTS700027: Client assertion contains an invalid signature` | Certificate not uploaded to the app registration, or wrong certificate/private key pair | Upload the certificate under Certificates & secrets → Certificates; verify thumbprints match |
 | `403 ErrorAccessDenied` | `Mail.Send` application permission missing, admin consent not granted, or an Exchange ApplicationAccessPolicy blocks this mailbox | Add `Mail.Send` as an **application** permission and grant admin consent; check access policies |
-| `MissingMailReadWritePermission` exception | Mail exceeds ~3 MB and the app lacks `Mail.ReadWrite` | Grant `Mail.ReadWrite` application permission + admin consent, then `php artisan cache:clear` (cached tokens lack new permissions) — or reduce attachment size |
+| `MissingMailReadWritePermissionException` exception | Mail exceeds ~3 MB and the app lacks `Mail.ReadWrite` | Grant `Mail.ReadWrite` application permission + admin consent, then `php artisan cache:clear` (cached tokens lack new permissions) — or reduce attachment size |
 | Permission was granted but errors persist | The cached token was issued before the grant and does not contain the new role | `php artisan cache:clear` |
 | `404 ErrorInvalidUser: The requested user '...' is invalid` | The from address is not an existing mailbox, or is an alias instead of the primary SMTP address | Use the mailbox's primary SMTP address; verify the mailbox exists in the tenant |
 | Auth keeps failing after rotating the client secret | Old token still cached | `php artisan cache:clear` |

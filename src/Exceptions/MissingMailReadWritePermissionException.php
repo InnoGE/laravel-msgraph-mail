@@ -5,7 +5,7 @@ namespace InnoGE\LaravelMsGraphMail\Exceptions;
 use RuntimeException;
 use Throwable;
 
-class MissingMailReadWritePermission extends RuntimeException
+class MissingMailReadWritePermissionException extends RuntimeException
 {
     public function __construct(?Throwable $previous = null)
     {
