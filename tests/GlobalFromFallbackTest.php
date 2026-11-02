@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
-use InnoGE\LaravelMsGraphMail\Exceptions\ConfigurationMissing;
+use InnoGE\LaravelMsGraphMail\Exceptions\MissingConfigurationException;
 use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMail;
 
 it('falls back to the global mail.from address when the mailer defines none', function () {
@@ -59,7 +59,7 @@ it('rejects a present but empty mailer-level from even when a global from exists
     ]);
 
     expect(fn () => Mail::to('caleb@livewire.com')->send(new TestMail(false)))
-        ->toThrow(ConfigurationMissing::class, 'Configuration key from.address for microsoft-graph mailer is missing.');
+        ->toThrow(MissingConfigurationException::class, 'Configuration key from.address for microsoft-graph mailer is missing.');
 });
 
 it('prefers the mailer-level from address over the global one', function () {

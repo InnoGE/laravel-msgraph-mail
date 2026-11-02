@@ -1,102 +1,170 @@
-# Laravel Microsoft Graph Mail Driver Package
+<p align="center">
+    <img src="docs/logo.png" alt="Laravel MsGraph Mail" width="900">
+</p>
+
+# Laravel Microsoft Graph Mail
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/innoge/laravel-msgraph-mail.svg?style=flat-square)](https://packagist.org/packages/innoge/laravel-msgraph-mail)
-[![Laravel Version](https://img.shields.io/badge/laravel-11.x%7C12.x%7C13.x-orange)](https://packagist.org/packages/innoge/laravel-msgraph-mail)
+[![Laravel Version](https://img.shields.io/badge/laravel-12.x%7C13.x-orange)](https://packagist.org/packages/innoge/laravel-msgraph-mail)
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/innoge/laravel-msgraph-mail/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/innoge/laravel-msgraph-mail/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/innoge/laravel-msgraph-mail/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/innoge/laravel-msgraph-mail/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/innoge/laravel-msgraph-mail.svg?style=flat-square)](https://packagist.org/packages/innoge/laravel-msgraph-mail)
 
-This package provides a Microsoft Graph mail driver for Laravel. It is an alternative when you don't want to use the
-deprecated and unsecure Basic Auth SMTP driver with Microsoft Office 365.
+- [Introduction](#introduction)
+- [Installation](#installation)
+    - [Registering the Entra App](#registering-the-entra-app)
+    - [Configuring the Mailer](#configuring-the-mailer)
+    - [Certificate Authentication](#certificate-authentication)
+- [Sending Mail](#sending-mail)
+    - [Saving Mail to Sent Items](#saving-mail-to-sent-items)
+    - [Large Attachments](#large-attachments)
+- [Using the Graph Client](#using-the-graph-client)
+- [AI Agent Support](#ai-agent-support)
+- [Upgrading](#upgrading)
 
-Version 2.x supports PHP 8.2+ and Laravel 11–13, authenticates with a client secret or a client certificate, and
-automatically sends large attachments through Microsoft Graph upload sessions. Upgrading from 1.x? See
-[UPGRADE.md](UPGRADE.md).
+<a name="introduction"></a>
+## Introduction
 
+Microsoft 365 is retiring basic authentication for SMTP, and sending through a shared Exchange mailbox with a password
+was never a great idea anyway. Laravel Microsoft Graph Mail gives Laravel a `microsoft-graph` mail transport that sends
+your mail through the Microsoft Graph API instead, authenticated as an Entra app with a client secret or a certificate.
+
+Your mailables, notifications and `Mail::to(...)` calls stay exactly as they are. You only switch the mailer:
+
+```ini
+MAIL_MAILER=microsoft-graph
+```
+
+Large attachments are sent through Microsoft Graph upload sessions automatically, so a 20 MB PDF works just like a
+two-line password reset.
+
+<a name="installation"></a>
 ## Installation
 
-You can install the package via composer:
+The package requires PHP 8.3+ and Laravel 12 or 13. Install it with Composer:
 
-```bash
+```shell
 composer require innoge/laravel-msgraph-mail
 ```
 
-## Configuration
+<a name="registering-the-entra-app"></a>
+### Registering the Entra App
 
-### Register the Azure App
+The transport authenticates as a Microsoft Entra app with an application permission:
 
-### Microsoft Azure AD Configuration
+1. In the [Entra admin center](https://entra.microsoft.com), go to **App registrations** and create a new
+   registration. Note the **Application (client) ID** and the **Directory (tenant) ID**.
+2. Under **Certificates & secrets**, create a client secret, or upload a certificate if you'd rather not rotate
+   secrets (see [Certificate Authentication](#certificate-authentication)).
+3. Under **API permissions**, add the Microsoft Graph **application** permission `Mail.Send` and grant admin consent.
+   If you send [large attachments](#large-attachments), add `Mail.ReadWrite` as well.
+4. Limit the app to the mailboxes it may send from. An application permission covers every mailbox in your tenant by
+   default, so restrict it with [RBAC for Applications](https://learn.microsoft.com/exchange/permissions-exo/application-rbac)
+   or an Application Access Policy.
 
-I have written a detailed Blog Post how you can configure your Microsoft Azure AD Tenant. [Sending Mails with Laravel and Microsoft Office 365 the secure way](https://geisi.dev/blog/getting-rid-of-deprecated-microsoft-office-365-smtp-mail-sending)
+Prefer a walkthrough with screenshots? There's a [blog post](https://geisi.dev/blog/getting-rid-of-deprecated-microsoft-office-365-smtp-mail-sending)
+covering every step.
 
-### I want to figure it out on my own
+<a name="configuring-the-mailer"></a>
+### Configuring the Mailer
 
-You need to register an Azure App in your Azure AD tenant. You can do this by following the steps in
-the [Microsoft Graph documentation](https://docs.microsoft.com/en-us/graph/auth-register-app-v2).
-
-After creating the App you have to add the following permissions to the App:
-Mail.Send (Application permission) you will find it under the "Microsoft Graph" section.
-
-Now you have to Grant Admin Consent for the App. You can do this by following the steps in
-the [Microsoft Graph documentation](https://docs.microsoft.com/en-us/graph/auth-v2-service#3-get-administrator-consent).
-
-### Configuring your Laravel app
-
-First you need to add a new entry to the mail drivers array in your `config/mail.php` configuration file:
+Add a `microsoft-graph` mailer to the `mailers` array of your `config/mail.php` configuration file:
 
 ```php
 'microsoft-graph' => [
+
+    /*
+     * The transport registered by this package. Do not change it.
+     */
     'transport' => 'microsoft-graph',
-    'client_id' => env('MICROSOFT_GRAPH_CLIENT_ID'),
-    'client_secret' => env('MICROSOFT_GRAPH_CLIENT_SECRET'),
+
+    /*
+     * The Directory (tenant) ID and the Application (client) ID of your Entra app registration.
+     */
     'tenant_id' => env('MICROSOFT_GRAPH_TENANT_ID'),
+    'client_id' => env('MICROSOFT_GRAPH_CLIENT_ID'),
+
+    /*
+     * A client secret of the app registration. Leave it out when you authenticate with a certificate
+     * instead, which takes precedence once it is filled.
+     */
+    'client_secret' => env('MICROSOFT_GRAPH_CLIENT_SECRET'),
+
+    /*
+     * Optional. The sender of every mail sent through this mailer. Omit the whole key to use the global
+     * mail.from configuration. The address must be the primary SMTP address of a real mailbox in your tenant.
+     */
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS'),
         'name' => env('MAIL_FROM_NAME'),
     ],
-    'save_to_sent_items' =>  env('MAIL_SAVE_TO_SENT_ITEMS', false),
+
+    /*
+     * Optional. Whether sent mail is kept in the sender's "Sent Items" folder. Defaults to false;
+     * single mailables may override it.
+     */
+    'save_to_sent_items' => env('MAIL_SAVE_TO_SENT_ITEMS', false),
 ],
 ```
 
-For the `client_id`, `client_secret` and `tenant_id` you need to use the values from the Azure App you created in the
-previous step.
+Then add your credentials to the `.env` file and switch the default mailer:
 
-The `from` block is optional: when it is omitted entirely, the global `mail.from` configuration is used. The from
-address must be the primary SMTP address of a real mailbox in your tenant.
-
-Now you can switch your default mail driver to the new `microsoft-graph` driver by setting the env variable:
-
-```dotenv
+```ini
 MAIL_MAILER=microsoft-graph
+
+MICROSOFT_GRAPH_TENANT_ID=
+MICROSOFT_GRAPH_CLIENT_ID=
+MICROSOFT_GRAPH_CLIENT_SECRET=
 ```
 
-### Certificate authentication
+<a name="certificate-authentication"></a>
+### Certificate Authentication
 
-Instead of a client secret you can authenticate with a client certificate (no more expiring secrets). Upload the
-certificate to the Azure app registration (Certificates & secrets → Certificates), then configure:
+Client secrets expire, and an expired secret means mail silently stops going out. Certificates are the more robust
+choice. Upload the certificate to your app registration under **Certificates & secrets**, then add a
+`client_certificate` entry to the mailer:
 
 ```php
 'microsoft-graph' => [
     'transport' => 'microsoft-graph',
-    'client_id' => env('MICROSOFT_GRAPH_CLIENT_ID'),
     'tenant_id' => env('MICROSOFT_GRAPH_TENANT_ID'),
+    'client_id' => env('MICROSOFT_GRAPH_CLIENT_ID'),
+
+    /*
+     * The certificate uploaded to the app registration and its private key, each as PEM content or a
+     * local file path. The passphrase is only needed for an encrypted private key.
+     */
     'client_certificate' => [
-        'certificate' => env('MICROSOFT_GRAPH_CERTIFICATE'),      // PEM content or file path
-        'private_key' => env('MICROSOFT_GRAPH_PRIVATE_KEY'),      // PEM content or file path
-        'passphrase' => env('MICROSOFT_GRAPH_KEY_PASSPHRASE'),    // optional
+        'certificate' => env('MICROSOFT_GRAPH_CERTIFICATE'),
+        'private_key' => env('MICROSOFT_GRAPH_PRIVATE_KEY'),
+        'passphrase' => env('MICROSOFT_GRAPH_KEY_PASSPHRASE'),
     ],
-    // ...
 ],
 ```
 
-Both values accept either raw PEM content (starting with `-----BEGIN`) or a path to a PEM file. When
-`client_certificate` is configured it takes precedence over `client_secret`. Certificate authentication requires the
-`openssl` PHP extension.
+Certificate authentication requires the `openssl` PHP extension. The certificate and key are read when the mailer is
+created, so a broken key fails right away with an `InvalidCredentialsException` rather than on the first send. File
+paths must point to local files, and no exception message ever contains your key.
 
-### Saving mails to Sent Items
+<a name="sending-mail"></a>
+## Sending Mail
 
-The `save_to_sent_items` option controls whether sent mail is stored in the sender mailbox's "Sent Items" folder
-(default: `false`). Individual mailables can override the configured default through a Symfony metadata header:
+There's nothing new to learn. Once the mailer is configured, send mail the way you always do:
+
+```php
+Mail::to($user)->send(new OrderShipped($order));
+```
+
+If `microsoft-graph` isn't your default mailer, pick it explicitly:
+
+```php
+Mail::mailer('microsoft-graph')->to($user)->send(new OrderShipped($order));
+```
+
+<a name="saving-mail-to-sent-items"></a>
+### Saving Mail to Sent Items
+
+By default, sent mail isn't kept in the sender's "Sent Items" folder. You may change the default with the
+`save_to_sent_items` option, or decide per mailable through a Symfony metadata header:
 
 ```php
 use Symfony\Component\Mailer\Header\MetadataHeader;
@@ -107,30 +175,63 @@ $mailable->withSymfonyMessage(function (Email $message) {
 });
 ```
 
-### Large attachments
+<a name="large-attachments"></a>
+### Large Attachments
 
-Messages whose total size exceeds Microsoft Graph's ~4 MB `sendMail` request limit are sent automatically through a
-draft message with chunked [attachment upload sessions](https://learn.microsoft.com/en-us/graph/outlook-large-attachments).
-This path additionally requires the **`Mail.ReadWrite`** application permission (plus admin consent). Two things to
-know:
+Microsoft Graph rejects `sendMail` requests larger than about 4 MB. When your mail is bigger, the package creates a
+draft, uploads the attachments in chunks through [upload sessions](https://learn.microsoft.com/graph/outlook-large-attachments)
+and then sends the draft. You don't have to do anything, but this path needs the `Mail.ReadWrite` application
+permission. Without it, the package throws a `MissingMailReadWritePermissionException` that tells you exactly that.
 
-- Without `Mail.ReadWrite`, large sends throw a `MissingMailReadWritePermission` exception explaining the fix.
-- Graph stores a sent draft in Sent Items unconditionally; when `save_to_sent_items` is disabled the package deletes
-  the sent message from Sent Items afterwards (best effort). Failed sends clean up their draft.
+Microsoft always keeps a sent draft in "Sent Items". When `save_to_sent_items` is disabled, the package removes it
+again afterwards, and a failed send cleans up its draft.
 
+<a name="using-the-graph-client"></a>
+## Using the Graph Client
+
+The authenticated client behind the transport is available for your own Microsoft Graph calls. It caches its access
+token, URL-encodes path segments, and only ever sends the token to the Microsoft Graph API:
+
+```php
+use InnoGE\LaravelMsGraphMail\Graph\ClientSecret;
+use InnoGE\LaravelMsGraphMail\Graph\GraphClient;
+use InnoGE\LaravelMsGraphMail\Graph\GraphCredentials;
+
+$graph = new GraphClient(new GraphCredentials(
+    tenantId: config('services.graph.tenant_id'),
+    clientId: config('services.graph.client_id'),
+    authentication: new ClientSecret(config('services.graph.client_secret')),
+));
+
+$messages = $graph->request()
+    ->get($graph->path('users', 'support@example.com', 'messages'))
+    ->throw()
+    ->json('value');
+```
+
+[innoge/laravel-msgraph-mailbox](https://github.com/innoge/laravel-msgraph-mailbox) is built on this client. If you'd
+like to receive mail as well, it turns Microsoft 365 mailboxes into Laravel events.
+
+<a name="ai-agent-support"></a>
 ## AI Agent Support
 
-This package ships with a [Laravel Boost](https://laravel.com/docs/boost) skill (`msgraph-mail`) covering configuration, troubleshooting, and a step-by-step Azure app registration guide. If your project uses Boost, the skill is installed automatically via `php artisan boost:install` or `php artisan boost:update --discover`.
+The package ships a [Laravel Boost](https://laravel.com/docs/boost) skill covering configuration, troubleshooting and
+the Entra app registration. Boost installs it through `php artisan boost:install` or `php artisan boost:update --discover`.
+
+<a name="upgrading"></a>
+## Upgrading
+
+Upgrading from 1.x or 2.x? The [upgrade guide](UPGRADE.md) walks you through every change.
 
 ## Testing
 
-```bash
+```shell
 composer test
 ```
 
 ## Changelog
 
-Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
+Please see the [CHANGELOG](CHANGELOG.md) for what has changed recently.
 
 ## Contributing
 
@@ -142,9 +243,9 @@ Please review [our security policy](../../security/policy) on how to report secu
 
 ## Credits
 
--   [Tim Geisendoerfer](https://github.com/InnoGE)
--   [All Contributors](../../contributors)
+- [Tim Geisendoerfer](https://github.com/InnoGE)
+- [All Contributors](../../contributors)
 
 ## License
 
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+The MIT License (MIT). Please see the [License File](LICENSE.md) for more information.

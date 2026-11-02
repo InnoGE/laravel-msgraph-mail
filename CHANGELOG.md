@@ -2,7 +2,31 @@
 
 All notable changes to `laravel-msgraph-mail` will be documented in this file.
 
-## 2.0.0 - Unreleased
+## 3.0.0 - Unreleased
+
+See [UPGRADE.md](UPGRADE.md) for the full migration guide.
+
+### Added
+
+- Reusable Graph client in `InnoGE\LaravelMsGraphMail\Graph`: `GraphClient` (`request()` that only ever sends the token to the Graph API, `path()`) built from typed `GraphCredentials`, so other packages can use the authenticated Graph client without the mail driver
+
+### Changed
+
+- Requires PHP >= 8.3 and Laravel 12 or 13
+- `MicrosoftGraphApiService` composes `GraphClient`; its protected token/request methods were removed
+- Authentication classes, the `ClientAuthentication` contract and `InvalidResponseException` moved to the `Graph` namespace
+- `LaravelMsGraphMailServiceProvider` is now `MsGraphMailServiceProvider`, `Services\MicrosoftGraphApiService` is now `MailApi`, and exceptions carry the `Exception` suffix
+- README rewritten in the Laravel documentation voice
+- Client certificates are loaded and validated once when the mailer is created
+- Configuration exceptions never contain configured values; credentials are `#[\SensitiveParameter]`
+
+### Fixed
+
+- Certificate authentication was selected for secret-only setups whose `client_certificate` env values were empty
+- An unreadable `client_certificate.private_key` value was echoed into the exception message; file loading is restricted to local files
+- Message ids and addresses are URL-encoded in Graph paths
+
+## 2.0.0 - 2026-08-03
 
 See [UPGRADE.md](UPGRADE.md) for the full migration guide.
 

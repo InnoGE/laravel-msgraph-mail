@@ -4,7 +4,9 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
-use InnoGE\LaravelMsGraphMail\Exceptions\ConfigurationMissing;
+use Illuminate\Support\Str;
+use InnoGE\LaravelMsGraphMail\Exceptions\InvalidConfigurationException;
+use InnoGE\LaravelMsGraphMail\Exceptions\MissingConfigurationException;
 use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMail;
 
 function configureCertificateMailer(string $certificate, string $privateKey, ?string $passphrase = null): void
@@ -36,7 +38,7 @@ function assertValidClientAssertion(): void
     $tokenRequestSeen = false;
 
     Http::assertSent(function (Request $request) use (&$tokenRequestSeen) {
-        if (! str_starts_with($request->url(), 'https://login.microsoftonline.com')) {
+        if (! Str::startsWith($request->url(), 'https://login.microsoftonline.com')) {
             return true;
         }
 
@@ -49,12 +51,12 @@ function assertValidClientAssertion(): void
             ->and($body)->not->toHaveKey('client_secret')
             ->and($body['client_assertion_type'])->toBe('urn:ietf:params:oauth:client-assertion-type:jwt-bearer');
 
-        [$header, $claims, $signature] = explode('.', (string) $body['client_assertion']);
+        [$header, $claims, $signature] = Str::of((string) $body['client_assertion'])->explode('.')->all();
 
         $decode = fn (string $part) => json_decode(base64_decode(strtr($part, '-_', '+/')), true);
 
         $expectedThumbprint = rtrim(strtr(base64_encode(hex2bin(
-            str_replace(':', '', '9D:76:A4:16:78:1F:1A:AD:E0:0C:04:AC:E4:5F:83:3E:54:F3:32:18')
+            Str::replace(':', '', '9D:76:A4:16:78:1F:1A:AD:E0:0C:04:AC:E4:5F:83:3E:54:F3:32:18')
         )), '+/', '-_'), '=');
 
         expect($decode($header))->toMatchArray(['alg' => 'RS256', 'typ' => 'JWT', 'x5t' => $expectedThumbprint])
@@ -111,7 +113,7 @@ it('authenticates with an encrypted private key and passphrase', function () {
     Mail::to('caleb@livewire.com')->send(new TestMail(false));
 
     Http::assertSent(function (Request $request) {
-        if (str_starts_with($request->url(), 'https://login.microsoftonline.com')) {
+        if (Str::startsWith($request->url(), 'https://login.microsoftonline.com')) {
             parse_str($request->body(), $body);
             expect($body)->toHaveKey('client_assertion');
         }
@@ -133,7 +135,7 @@ it('requires certificate and private key when client_certificate is configured',
     Config::set('mail.default', 'microsoft-graph');
 
     expect(fn () => Mail::to('caleb@livewire.com')->send(new TestMail(false)))
-        ->toThrow(ConfigurationMissing::class, 'Configuration key client_certificate.private_key for microsoft-graph mailer is missing.');
+        ->toThrow(MissingConfigurationException::class, 'Configuration key client_certificate.private_key for microsoft-graph mailer is missing.');
 });
 
 it('requires a client secret when no certificate is configured', function () {
@@ -146,5 +148,40 @@ it('requires a client secret when no certificate is configured', function () {
     Config::set('mail.default', 'microsoft-graph');
 
     expect(fn () => Mail::to('caleb@livewire.com')->send(new TestMail(false)))
-        ->toThrow(ConfigurationMissing::class, 'Configuration key client_secret for microsoft-graph mailer is missing.');
+        ->toThrow(MissingConfigurationException::class, 'Configuration key client_secret for microsoft-graph mailer is missing.');
+});
+
+it('uses the client secret when the certificate env values are empty', function () {
+    Config::set('mail.mailers.microsoft-graph', [
+        'transport' => 'microsoft-graph',
+        'client_id' => 'foo_client_id',
+        'tenant_id' => 'foo_tenant_id',
+        'client_secret' => 'foo_client_secret',
+        'client_certificate' => ['certificate' => null, 'private_key' => null, 'passphrase' => null],
+        'from' => ['address' => 'taylor@laravel.com', 'name' => 'Taylor Otwell'],
+    ]);
+    Config::set('mail.default', 'microsoft-graph');
+    Http::fake([
+        'https://login.microsoftonline.com/*' => Http::response(['access_token' => 'token', 'expires_in' => 3599]),
+        'https://graph.microsoft.com/v1.0/*' => Http::response(),
+    ]);
+
+    Mail::to('caleb@livewire.com')->send(new TestMail(false));
+
+    Http::assertSent(function (Request $request) {
+        if (! Str::startsWith($request->url(), 'https://login.microsoftonline.com')) {
+            return false;
+        }
+        parse_str($request->body(), $body);
+
+        return $body['client_secret'] === 'foo_client_secret' && ! isset($body['client_assertion']);
+    });
+});
+
+it('rejects a non string passphrase without echoing it', function () {
+    configureCertificateMailer(__DIR__.'/Resources/certs/test-certificate.pem', __DIR__.'/Resources/certs/test-private-key.pem');
+    Config::set('mail.mailers.microsoft-graph.client_certificate.passphrase', 1234);
+
+    expect(fn () => Mail::to('caleb@livewire.com')->send(new TestMail(false)))
+        ->toThrow(InvalidConfigurationException::class, 'Configuration key client_certificate.passphrase for microsoft-graph mailer is invalid: expected a string, got int.');
 });

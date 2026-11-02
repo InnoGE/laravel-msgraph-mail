@@ -6,9 +6,9 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use InnoGE\LaravelMsGraphMail\Exceptions\ConfigurationInvalid;
-use InnoGE\LaravelMsGraphMail\Exceptions\ConfigurationMissing;
-use InnoGE\LaravelMsGraphMail\Exceptions\InvalidResponse;
+use InnoGE\LaravelMsGraphMail\Exceptions\InvalidConfigurationException;
+use InnoGE\LaravelMsGraphMail\Exceptions\MissingConfigurationException;
+use InnoGE\LaravelMsGraphMail\Graph\InvalidResponseException;
 use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMail;
 use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMailWithInlineImage;
 use InnoGE\LaravelMsGraphMail\Tests\Stubs\TestMailWithMixedAttachments;
@@ -247,7 +247,7 @@ it('throws exceptions on invalid access token in response', function () {
     ]);
 
     expect(fn () => Mail::to('caleb@livewire.com')->send(new TestMail(false)))
-        ->toThrow(InvalidResponse::class, 'Expected response to contain key access_token of type string, got: 123.');
+        ->toThrow(InvalidResponseException::class, 'Expected the token response to contain key access_token of type string, got: int.');
 });
 
 it('throws exceptions when config is invalid', function (array $config, Exception $exception) {
@@ -268,7 +268,7 @@ it('throws exceptions when config is invalid', function (array $config, Exceptio
                 'name' => 'Taylor Otwell',
             ],
         ],
-        new ConfigurationMissing('tenant_id'),
+        new MissingConfigurationException('tenant_id'),
     ],
     [
         [
@@ -281,7 +281,7 @@ it('throws exceptions when config is invalid', function (array $config, Exceptio
                 'name' => 'Taylor Otwell',
             ],
         ],
-        new ConfigurationInvalid('tenant_id', 123),
+        new InvalidConfigurationException('tenant_id', 'expected a non-empty string, got int'),
     ],
     [
         [
@@ -293,7 +293,7 @@ it('throws exceptions when config is invalid', function (array $config, Exceptio
                 'name' => 'Taylor Otwell',
             ],
         ],
-        new ConfigurationMissing('client_id'),
+        new MissingConfigurationException('client_id'),
     ],
     [
         [
@@ -306,7 +306,7 @@ it('throws exceptions when config is invalid', function (array $config, Exceptio
                 'name' => 'Taylor Otwell',
             ],
         ],
-        new ConfigurationInvalid('client_id', ''),
+        new InvalidConfigurationException('client_id', 'expected a non-empty string, got an empty string'),
     ],
     [
         [
@@ -318,7 +318,7 @@ it('throws exceptions when config is invalid', function (array $config, Exceptio
                 'name' => 'Taylor Otwell',
             ],
         ],
-        new ConfigurationMissing('client_secret'),
+        new MissingConfigurationException('client_secret'),
     ],
     [
         [
@@ -331,7 +331,7 @@ it('throws exceptions when config is invalid', function (array $config, Exceptio
                 'name' => 'Taylor Otwell',
             ],
         ],
-        new ConfigurationInvalid('client_secret', null),
+        new InvalidConfigurationException('client_secret', 'expected a non-empty string, got null'),
     ],
     [
         [
@@ -340,7 +340,7 @@ it('throws exceptions when config is invalid', function (array $config, Exceptio
             'client_id' => 'foo_client_id',
             'client_secret' => 'foo_client_secret',
         ],
-        new ConfigurationMissing('from.address'),
+        new MissingConfigurationException('from.address'),
     ],
 ]);
 

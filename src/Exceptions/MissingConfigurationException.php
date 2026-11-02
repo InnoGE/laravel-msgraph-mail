@@ -4,7 +4,7 @@ namespace InnoGE\LaravelMsGraphMail\Exceptions;
 
 use Exception;
 
-class ConfigurationMissing extends Exception
+class MissingConfigurationException extends Exception
 {
     public function __construct(string $key)
     {
